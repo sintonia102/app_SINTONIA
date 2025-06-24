@@ -95,15 +95,13 @@
             border-radius: 0.5rem;
         }
 
-        /* Estilos para el contenedor de video */
+        /* Estilos para el contenedor de video (AJUSTADO PARA NUEVA POSICIÓN) */
         #videoContainer {
             width: 100%;
-            height: 100%;
+            /* No más position: absolute, top, left, z-index */
             aspect-ratio: 16 / 9; /* Mantener la proporción 16:9 */
-            position: absolute; /* Asegura que se superponga */
-            top: 0;
-            left: 0;
-            z-index: 10; /* Asegura que esté por encima del canvas */
+            /* Añadido para espaciado en la nueva ubicación */
+            margin-top: 1rem; 
         }
         
         /* Estilos para el iframe de video */
@@ -185,12 +183,9 @@
                 </div>
             </header>
 
-            <!-- Pantalla del reproductor (canvas para visualizador o iframe para video) -->
+            <!-- Pantalla del reproductor (solo para el vúmetro, el video estará en otro div) -->
             <div id="player-display" class="relative w-full rounded-lg overflow-hidden">
                 <canvas id="visualizer"></canvas>
-                <div id="videoContainer" class="hidden">
-                    <!-- El iframe se inyectará aquí con JavaScript -->
-                </div>
             </div>
             
             <!-- Etiqueta de la estación actual -->
@@ -215,6 +210,11 @@
                 </div>
             </div>
             
+            <!-- Contenedor del video (NUEVA POSICIÓN) -->
+            <div id="videoContainer" class="hidden">
+                <!-- El iframe se inyectará aquí con JavaScript -->
+            </div>
+
             <!-- Íconos de acción -->
             <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 text-center text-xs">
                  <div class="flex flex-col items-center">
@@ -470,20 +470,18 @@
                     }
                     cancelAnimationFrame(animationFrameId); // Detiene la animación del vúmetro
                     
-                    // Oculta elementos de la radio
+                    // Oculta el visualizador de audio (canvas)
                     canvas.classList.add('hidden');
-                    radioControls.classList.add('hidden');
-                    stationDisplayContainer.classList.add('hidden');
-
+                    // Los controles de radio y la etiqueta de la estación permanecen visibles
+                    
                     // Crea y muestra el iframe de video con las nuevas especificaciones
                     const iframe = document.createElement('iframe');
-                    iframe.src = "https://player.kick.com/sintonia-tv"; // Nueva URL sin autoplay en la query string
+                    iframe.src = "https://player.kick.com/sintonia-tv"; 
                     iframe.setAttribute('height', '720');
                     iframe.setAttribute('width', '1280');
                     iframe.setAttribute('frameborder', '0');
                     iframe.setAttribute('scrolling', 'no');
                     iframe.setAttribute('allowfullscreen', 'true');
-                    // Mantener 'autoplay' en el atributo allow para intentar la reproducción automática
                     iframe.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture'); 
 
                     videoContainer.innerHTML = ''; // Limpia el contenedor de video
@@ -500,10 +498,9 @@
                     videoContainer.classList.add('hidden');
                     videoContainer.innerHTML = '';
 
-                    // Muestra elementos de la radio
+                    // Muestra el visualizador de audio (canvas)
                     canvas.classList.remove('hidden');
-                    radioControls.classList.remove('hidden');
-                    stationDisplayContainer.classList.remove('hidden');
+                    // Los controles de radio y la etiqueta de la estación ya están visibles
 
                     // Actualiza el texto y el ícono del botón
                     videoToggleLabel.textContent = "Ver TV";
