@@ -189,7 +189,7 @@
             <div id="player-display" class="relative w-full rounded-lg overflow-hidden">
                 <canvas id="visualizer"></canvas>
                 <div id="videoContainer" class="hidden">
-                    <!-- El iframe se inyectará aquí con JavaScript -->
+                    <!-- El iframe ya no se inyectará aquí. Se mantiene oculto. -->
                 </div>
             </div>
             
@@ -339,7 +339,8 @@
 
             // --- Estado de la aplicación ---
             let isPlaying = false;
-            let isVideoActive = false;
+            // isVideoActive siempre será false, ya que la funcionalidad de video se desactiva
+            let isVideoActive = false; 
             let likeCount = 0;
             let startTimeout, stopTimeout;
 
@@ -365,7 +366,7 @@
                             showMessage("Error al reanudar el vúmetro: " + e.message, 5000);
                         });
                     }
-                    return; 
+                    return;
                 }
                 try {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -378,8 +379,8 @@
                     dataArray = new Uint8Array(bufferLength); // Array para almacenar los datos de frecuencia
                     console.log("AudioContext inicializado. Estado:", audioCtx.state);
                 } catch (e) {
-                    console.error("Error al configurar el Audio Context:", e);
-                    showMessage("Error al configurar el vúmetro: " + e.message + ". Esto puede deberse a restricciones del navegador (interacción del usuario necesaria) o del stream de audio (CORS).", 8000);
+                    console.error("Error al configurar el contexto de audio:", e);
+                    showMessage("El navegador no soporta el vúmetro o hay un problema con el stream (CORS).", 5000);
                 }
             }
 
@@ -390,54 +391,32 @@
 
                 console.log("Intentando iniciar playRadio()...");
 
-                if (!audioCtx) {
-                    console.log("AudioContext no inicializado. Llamando setupAudioContext().");
-                    setupAudioContext(); // Inicializa si no existe
-                }
-                
-                // Intenta reanudar el AudioContext si está suspendido.
-                // Esto requiere un gesto de usuario (como el clic en el botón de play/pause).
-                if (audioCtx && audioCtx.state === 'suspended') {
-                    console.log("AudioContext en estado 'suspended'. Intentando reanudar...");
-                    audioCtx.resume().then(() => {
-                        console.log("AudioContext reanudado con éxito desde playRadio(). Estado:", audioCtx.state);
-                        // Después de reanudar, si el video no está activo, intentar dibujar el vúmetro
-                        if (!isVideoActive) {
-                            draw();
-                        }
-                    }).catch(e => {
-                        console.error("Error al reanudar AudioContext desde playRadio():", e);
-                        showMessage("Error al reanudar el vúmetro: " + e.message, 5000);
-                    });
-                } else if (audioCtx && audioCtx.state === 'running') {
-                    console.log("AudioContext ya está 'running'.");
-                    if (!isVideoActive) {
-                        draw(); // Si ya está corriendo y no en modo video, empieza a dibujar
-                    }
-                } else if (audioCtx) {
-                     console.log("AudioContext en otro estado:", audioCtx.state);
-                } else {
-                    console.log("AudioContext es null después de setup, podría haber fallado la inicialización.");
+                // Asegurarse de que el AudioContext esté inicializado y reanudarlo si está suspendido
+                if (!audioCtx || audioCtx.state === 'suspended') {
+                    setupAudioContext(); // Esto intentará reanudar si ya existe y está suspendido
                 }
                 
                 radioPlayer.play().then(() => {
                     console.log("Reproducción de radio iniciada con éxito.");
                     isPlaying = true;
                     playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>'; // Cambia el ícono a pausa
-                }).catch(e => {
-                    console.error("Error al intentar reproducir audio:", e);
-                    if (e.name === "NotAllowedError" || e.name === "AbortError") {
-                        showMessage("Permiso de reproducción denegado. Haz clic en el botón de Play para iniciar.", 8000);
-                    } else {
-                        showMessage("No se pudo iniciar la radio: " + e.message, 6000);
+
+                    // Solo inicia el dibujo del vúmetro si el modo video no está activo y el AudioContext está corriendo
+                    // La comprobación de estado 'running' es crucial aquí.
+                    if (!isVideoActive && audioCtx && audioCtx.state === 'running') {
+                        draw();
+                    } else if (audioCtx && audioCtx.state !== 'running') {
+                         console.warn("AudioContext no está en estado 'running' después de play(). Vúmetro no se iniciará de inmediato.");
                     }
+                }).catch(e => {
+                    console.error("Error al reproducir audio:", e);
+                    showMessage("No se pudo iniciar la radio. Asegúrate de interactuar con la página primero.", 6000);
                 });
             }
 
             // Pausa la reproducción de la radio
             function pauseRadio() {
                 if (!isPlaying) return; // Si no está reproduciendo, no hacer nada
-                console.log("Pausando radio...");
                 radioPlayer.pause();
                 cancelAnimationFrame(animationFrameId); // Detiene la animación del vúmetro
                 isPlaying = false;
@@ -455,7 +434,6 @@
             
             // Cambia la fuente de audio entre las estaciones disponibles
             function toggleAudioSource() {
-                console.log("Cambiando fuente de audio...");
                 const wasPlaying = isPlaying; // Guarda el estado de reproducción actual
                 if (wasPlaying) {
                     pauseRadio(); // Pausa la radio antes de cambiar la fuente
@@ -471,8 +449,7 @@
 
                 if (wasPlaying) {
                     radioPlayer.addEventListener('canplay', () => {
-                        console.log("Nueva fuente de audio lista para reproducir.");
-                        playRadio(); // Vuelve a reproducir una vez que la nueva fuente esté lista
+                         playRadio(); // Vuelve a reproducir una vez que la nueva fuente esté lista
                     }, { once: true });
                 }
             }
@@ -482,60 +459,26 @@
                  currentStationLabel.textContent = `Ahora suena: ${streams[currentStreamIndex].name}`;
             }
             
-            // Alterna entre el visualizador de audio y el video en vivo
+            // Función toggleVideo modificada: solo muestra un mensaje
             function toggleVideo() {
-                console.log("Cambiando modo de visualización (Video/Radio).");
-                isVideoActive = !isVideoActive; // Invierte el estado del video
-                if (isVideoActive) {
-                    // --- Mostrar Video ---
-                    console.log("Activando modo Video.");
-                    if (isPlaying) {
-                        pauseRadio(); // Pausa la radio si estaba reproduciendo
-                    }
-                    cancelAnimationFrame(animationFrameId); // Detiene la animación del vúmetro
-                    
-                    // Oculta elementos de la radio
-                    canvas.classList.add('hidden');
-                    radioControls.classList.add('hidden');
-                    stationDisplayContainer.classList.add('hidden');
+                // Simplemente muestra un mensaje, sin activar ni ocultar video real
+                showMessage("La función de Ver TV no está implementada todavía. ¡Pronto estará disponible!", 4000);
+                
+                // Asegurarse de que los elementos de la radio estén visibles
+                canvas.classList.remove('hidden');
+                radioControls.classList.remove('hidden');
+                stationDisplayContainer.classList.remove('hidden');
+                videoContainer.classList.add('hidden'); // Asegura que el contenedor de video esté oculto
+                videoContainer.innerHTML = ''; // Limpia cualquier iframe residual
 
-                    // Crea y muestra el iframe de video
-                    const iframe = document.createElement('iframe');
-                    iframe.src = "https://player.kick.com/sintonia-tv?autoplay=true"; // URL del stream de video con autoplay
-                    iframe.setAttribute('frameborder', '0');
-                    iframe.setAttribute('scrolling', 'no');
-                    iframe.setAttribute('allowfullscreen', 'true');
-                    // Añadimos 'picture-in-picture' para más compatibilidad
-                    iframe.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture'); 
-
-                    videoContainer.innerHTML = ''; // Limpia el contenedor de video
-                    videoContainer.appendChild(iframe); // Agrega el iframe
-                    videoContainer.classList.remove('hidden'); // Muestra el contenedor de video
-
-                    // Actualiza el texto y el ícono del botón
-                    videoToggleLabel.textContent = "Escuchar Radio";
-                    videoToggleBtn.innerHTML = '<i class="fa-solid fa-radio"></i>';
-                    showMessage("Cargando video de TV... Si no se ve, verifica la consola del navegador por errores de incrustación.", 5000); // Mensaje de confirmación
-                } else {
-                    // --- Mostrar Radio ---
-                    console.log("Activando modo Radio.");
-                    // Oculta el video y lo limpia
-                    videoContainer.classList.add('hidden');
-                    videoContainer.innerHTML = '';
-
-                    // Muestra elementos de la radio
-                    canvas.classList.remove('hidden');
-                    radioControls.classList.remove('hidden');
-                    stationDisplayContainer.classList.remove('hidden');
-
-                    // Actualiza el texto y el ícono del botón
-                    videoToggleLabel.textContent = "Ver TV";
-                    videoToggleBtn.innerHTML = '<i class="fa-solid fa-tv"></i>';
-                    
-                    // Reproduce la radio automáticamente al volver
-                    playRadio();
-                    showMessage("Cambiando a Radio...", 3000); // Mensaje de confirmación
+                // Si la radio estaba pausada, la inicia cuando se pulsa el botón de TV (comportamiento original)
+                if (!isPlaying) {
+                     playRadio();
                 }
+                
+                // Asegurar que el botón siempre muestre "Ver TV" y el ícono de TV
+                videoToggleLabel.textContent = "Ver TV";
+                videoToggleBtn.innerHTML = '<i class="fa-solid fa-tv"></i>';
             }
 
             // Cambia el efecto de visualización del vúmetro
@@ -645,15 +588,24 @@
             // --- Funciones de dibujo del Vúmetro ---
             // Función principal de dibujo del vúmetro (loop de animación)
             function draw() {
-                // Asegúrate de que el AudioContext esté en estado 'running' antes de intentar dibujar
-                if (!isPlaying || isVideoActive || !audioCtx || audioCtx.state !== 'running') {
-                    // console.log("Deteniendo dibujo del vúmetro. isPlaying:", isPlaying, "isVideoActive:", isVideoActive, "audioCtx:", audioCtx?.state);
+                // El vúmetro solo se dibuja si la radio está sonando, el modo video no está activo,
+                // y si el AudioContext está inicializado y en estado 'running'.
+                if (!isPlaying || isVideoActive || !audioCtx || audioCtx.state !== 'running' || !dataArray) {
                     cancelAnimationFrame(animationFrameId);
                     return;
                 }
 
                 animationFrameId = requestAnimationFrame(draw); // Solicita el siguiente frame de animación
                 analyser.getByteFrequencyData(dataArray); // Obtiene los datos de frecuencia
+                
+                // --- DEBUGGING: Revisa si dataArray tiene datos ---
+                const sumData = dataArray.reduce((acc, val) => acc + val, 0);
+                if (sumData === 0) {
+                    console.warn("Vúmetro: dataArray está todo a cero. Esto sugiere que no se están recibiendo datos de audio del stream, probablemente debido a restricciones CORS en el servidor de radio.");
+                } else {
+                    // console.log("Vúmetro: la suma de los datos de audio es:", sumData);
+                }
+                // --- FIN DEBUGGING ---
 
                 canvasCtx.fillStyle = '#000'; // Color de fondo del canvas
                 canvasCtx.fillRect(0, 0, canvas.width, canvas.height); // Limpia el canvas
@@ -905,7 +857,6 @@
                     canvas.width = playerDisplay.clientWidth;
                     canvas.height = playerDisplay.clientHeight;
                 });
-                console.log("Aplicación inicializada.");
             }
 
             init(); // Llama a la función de inicialización al cargar la página
