@@ -234,7 +234,7 @@
             <audio id="radio-player" crossorigin="anonymous"></audio>
 
             <!-- Controles de la radio -->
-            <div id="radio-controls" class="flex flex-col space-y-4">
+            <div class="flex flex-col space-y-4" id="radio-controls">
                 <div class="flex items-center justify-center space-x-4">
                     <button id="play-pause-btn" class="text-4xl w-16 h-16 flex items-center justify-center rounded-full btn-primary shadow-lg">
                         <i class="fas fa-play"></i>
@@ -336,50 +336,7 @@
         import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // --- Configuración de Firebase ---
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-            let app, db, auth;
-            let userId = 'anonymous'; // Default userId
-
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // Autenticación: Usar custom token si está disponible, de lo contrario anónimo
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        console.log("Firebase Auth Ready. User ID:", userId);
-                        // Una vez autenticado, podemos iniciar la escucha de likes
-                        setupLikesListener();
-                    } else {
-                        console.log("No user is signed in.");
-                        userId = 'anonymous';
-                    }
-                });
-            } catch (e) {
-                console.error("Error initializing Firebase or authenticating:", e);
-                showMessage("Error al iniciar la base de datos (Firebase). Algunas funciones pueden no estar disponibles.", 8000);
-            }
-
-            // --- Cadenas de audio ---
-            const streams = [
-                { name: "SINTONIA", url: "https://stream.radioservice.org/8046/stream" },
-                { name: "ZENO FM", url: "https://stream.zeno.fm/40x1zezb7nhvv" }
-            ];
-            let currentStreamIndex = 0;
-
-            // --- Elementos del DOM ---
+            // --- Elementos del DOM (Declarados al inicio para evitar ReferenceError) ---
             const radioPlayer = document.getElementById('radio-player');
             const playPauseBtn = document.getElementById('play-pause-btn');
             const volumeSlider = document.getElementById('volume-slider');
@@ -412,6 +369,79 @@
             const aiInfoContentDiv = document.getElementById('ai-info-content');
 
 
+            // --- Configuración de Firebase ---
+            // Usamos las variables globales proporcionadas por el entorno de Canvas
+            // Si estás en GitHub Pages o localmente, descomenta y usa tus propias credenciales.
+            // Si estás en Canvas, estas variables globales serán inyectadas.
+
+            const firebaseConfig = {
+                apiKey: "AIzaSyDomYzzPU9zxP9KdMGKvOrrNlwt0RLVE7Y",
+                authDomain: "appsintonia-66989.firebaseapp.com",
+                projectId: "appsintonia-66989",
+                storageBucket: "appsintonia-66989.firebasestorage.app",
+                messagingSenderId: "61116779380",
+                appId: "1:61116779380:web:e42c0f702296b17b153a21"
+                // measurementId: "G-3KWXJ5KHRF" // No es necesario para esta funcionalidad
+            };
+            
+            // Para despliegues fuera de Canvas (ej. GitHub Pages), usa tu propio appId directamente.
+            // Para Canvas, la variable __app_id se usa automáticamente.
+            const appIdForFirestore = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.appId;
+
+            let app, db, auth;
+            let userId = 'anonymous'; // Default userId
+            let globalLikeDocRef = null; // Se inicializará después de que Firebase esté listo
+
+            // Función para mostrar mensajes
+            function showMessage(text, duration = 3000) {
+                messageBox.textContent = text;
+                messageBox.classList.remove('hidden');
+                setTimeout(() => {
+                    messageBox.classList.add('hidden');
+                }, duration);
+            }
+
+            try {
+                // Si __firebase_config existe (estamos en Canvas), úsalo. Si no, usa firebaseConfig.
+                const currentFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
+                app = initializeApp(currentFirebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Autenticación: Usar custom token si está disponible (Canvas), de lo contrario anónimo
+                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Firebase Auth Ready. User ID:", userId);
+                        // Una vez autenticado, podemos iniciar la escucha de likes
+                        // Usa el appIdForFirestore (del entorno Canvas o tu propio appId) para la ruta de Firestore
+                        globalLikeDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/radioLikes/globalLikeCount`);
+                        setupLikesListener();
+                    } else {
+                        console.log("No user is signed in.");
+                        userId = 'anonymous';
+                    }
+                });
+            } catch (e) {
+                console.error("Error initializing Firebase or authenticating:", e);
+                // Ahora showMessage se puede llamar con seguridad
+                showMessage("Error al iniciar la base de datos (Firebase). Algunas funciones pueden no estar disponibles. Por favor, verifica tu configuración de Firebase en el código y las reglas de seguridad.", 10000);
+            }
+
+            // --- Cadenas de audio ---
+            const streams = [
+                { name: "SINTONIA", url: "https://stream.radioservice.org/8046/stream" },
+                { name: "ZENO FM", url: "https://stream.zeno.fm/40x1zezb7nhvv" }
+            ];
+            let currentStreamIndex = 0;
+
             // --- Configuración del Vúmetro (Visualizador) ---
             let audioCtx;
             let analyser;
@@ -440,19 +470,7 @@
             // --- Estado de la aplicación ---
             let isPlaying = false;
             let isVideoActive = false; 
-            // `likeCount` ya no se usa como variable local mutable, sino que se actualiza desde Firestore.
-            // let likeCount = 0; 
             let startTimeout, stopTimeout;
-
-            // --- Funciones de utilidad ---
-            // Muestra un mensaje temporal en la caja de mensajes
-            function showMessage(text, duration = 3000) {
-                messageBox.textContent = text;
-                messageBox.classList.remove('hidden');
-                setTimeout(() => {
-                    messageBox.classList.add('hidden');
-                }, duration);
-            }
 
             // Configura el contexto de audio para el visualizador
             function setupAudioContext() {
@@ -475,7 +493,6 @@
                     source = audioCtx.createMediaElementSource(radioPlayer); // Conecta el reproductor de audio al contexto
                     source.connect(analyser); // Conecta la fuente al analizador
                     analyser.connect(audioCtx.destination); // Conecta el analizador al destino (altavoces)
-                    // CORRECCIÓN: frequencyBinBinCount a frequencyBinCount
                     bufferLength = analyser.frequencyBinCount; // Número de datos de frecuencia
                     dataArray = new Uint8Array(bufferLength); // Array para almacenar los datos de frecuencia
                     console.log("AudioContext inicializado. Estado:", audioCtx.state);
@@ -620,11 +637,9 @@
             }
 
             // --- Lógica de likes con Firestore ---
-            const globalLikeDocRef = (db && appId) ? doc(db, `artifacts/${appId}/public/data/radioLikes/globalLikeCount`) : null;
-
             // Escucha en tiempo real los cambios en el contador de likes
             function setupLikesListener() {
-                if (globalLikeDocRef) {
+                if (globalLikeDocRef && db) { // Asegúrate de que globalLikeDocRef se haya inicializado
                     onSnapshot(globalLikeDocRef, (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
@@ -745,7 +760,6 @@
                 
                 const events = efemerides[key] || ["Hoy es un gran día para escuchar buena música."]; // Eventos para hoy
                 let eventIndex = 0;
-                const contentDiv = document.getElementById('efemeride-content');
                 
                 // Actualiza el evento de efemérides
                 function updateEvent() {
