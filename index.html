@@ -162,6 +162,43 @@
         input:checked + .slider:before {
             transform: translateX(26px);
         }
+
+        /* Estilos para el modal de detalles de efemérides */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: var(--card-color);
+            color: var(--text-color);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 8px 20px var(--shadow-color);
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-color);
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -266,10 +303,13 @@
             </div>
             
             <!-- Efemérides -->
-            <div id="efemerides-container" class="mt-4 p-3 rounded-lg text-center h-24 flex items-center justify-center" style="background: linear-gradient(45deg, var(--primary-color), #4a00e0);">
-                <div id="efemeride-content" class="text-white font-semibold text-sm">
+            <div id="efemerides-container" class="mt-4 p-3 rounded-lg text-center flex flex-col items-center justify-center" style="background: linear-gradient(45deg, var(--primary-color), #4a00e0);">
+                <div id="efemeride-content" class="text-white font-semibold text-sm mb-2">
                     <!-- El contenido se inyectará aquí -->
                 </div>
+                 <button id="elaborate-efemeride-btn" class="btn-primary px-3 py-1 text-sm rounded-md shadow-md">
+                    ✨ Más sobre esto
+                </button>
             </div>
             
              <!-- Caja de mensajes (para notificaciones) -->
@@ -278,8 +318,60 @@
         </main>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+    <!-- Modal para la información de la efeméride generada por IA -->
+    <div id="ai-info-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="modal-close-btn">&times;</button>
+            <h3 class="text-lg font-bold mb-3" style="color: var(--primary-color);">Detalles de la Efeméride</h3>
+            <div id="ai-info-content" class="text-sm">
+                <!-- Contenido generado por IA aquí -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Importa las funciones necesarias de Firebase SDKs
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // --- Configuración de Firebase ---
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+            let app, db, auth;
+            let userId = 'anonymous'; // Default userId
+
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Autenticación: Usar custom token si está disponible, de lo contrario anónimo
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Firebase Auth Ready. User ID:", userId);
+                        // Una vez autenticado, podemos iniciar la escucha de likes
+                        setupLikesListener();
+                    } else {
+                        console.log("No user is signed in.");
+                        userId = 'anonymous';
+                    }
+                });
+            } catch (e) {
+                console.error("Error initializing Firebase or authenticating:", e);
+                showMessage("Error al iniciar la base de datos (Firebase). Algunas funciones pueden no estar disponibles.", 8000);
+            }
+
             // --- Cadenas de audio ---
             const streams = [
                 { name: "SINTONIA", url: "https://stream.radioservice.org/8046/stream" },
@@ -312,6 +404,14 @@
             const stopTimeInput = document.getElementById('stop-time-input');
             const setStopBtn = document.getElementById('set-stop-btn');
 
+            // Elementos para la nueva función de efemérides LLM
+            const elaborateEfemerideBtn = document.getElementById('elaborate-efemeride-btn');
+            const efemerideContentDiv = document.getElementById('efemeride-content');
+            const aiInfoModal = document.getElementById('ai-info-modal');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+            const aiInfoContentDiv = document.getElementById('ai-info-content');
+
+
             // --- Configuración del Vúmetro (Visualizador) ---
             let audioCtx;
             let analyser;
@@ -340,7 +440,8 @@
             // --- Estado de la aplicación ---
             let isPlaying = false;
             let isVideoActive = false; 
-            let likeCount = 0;
+            // `likeCount` ya no se usa como variable local mutable, sino que se actualiza desde Firestore.
+            // let likeCount = 0; 
             let startTimeout, stopTimeout;
 
             // --- Funciones de utilidad ---
@@ -392,7 +493,7 @@
                 console.log("Intentando iniciar playRadio()...");
 
                 // Asegurarse de que el AudioContext esté inicializado y reanudarlo si está suspendido
-                if (!audioCtx || audioCtx.state === 'suspended') {
+                if (!audioCtx || (audioCtx && audioCtx.state === 'suspended')) {
                     setupAudioContext(); // Esto intentará reanudar si ya existe y está suspendido
                 }
                 
@@ -518,12 +619,55 @@
                 showMessage(`Vúmetro Efecto ${currentVumeterEffect + 1}`, 1500); // Muestra el nombre del efecto
             }
 
+            // --- Lógica de likes con Firestore ---
+            const globalLikeDocRef = (db && appId) ? doc(db, `artifacts/${appId}/public/data/radioLikes/globalLikeCount`) : null;
+
+            // Escucha en tiempo real los cambios en el contador de likes
+            function setupLikesListener() {
+                if (globalLikeDocRef) {
+                    onSnapshot(globalLikeDocRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            const currentLikes = data.count || 0;
+                            likeCountSpan.textContent = `${currentLikes} Me Gusta`;
+                            console.log("Likes actualizados desde Firestore:", currentLikes);
+                        } else {
+                            // Si el documento no existe, inicialízalo a 0
+                            setDoc(globalLikeDocRef, { count: 0 }).then(() => {
+                                likeCountSpan.textContent = `0 Me Gusta`;
+                                console.log("Documento de likes inicializado en Firestore.");
+                            }).catch(e => {
+                                console.error("Error al inicializar likes:", e);
+                            });
+                        }
+                    }, (error) => {
+                        console.error("Error al escuchar likes de Firestore:", error);
+                        showMessage("Error de conexión con los likes. Los 'Me Gusta' podrían no actualizarse.", 5000);
+                    });
+                } else {
+                    console.warn("Firestore no está disponible para likes. Revisa la inicialización de Firebase.");
+                    likeCountSpan.textContent = `0 Me Gusta (no persistente)`;
+                }
+            }
+            
             // Maneja el evento de "Me gusta"
-            function handleLike() {
-                likeCount++; // Incrementa el contador
-                likeCountSpan.textContent = `${likeCount} Me Gusta`; // Actualiza el texto
-                likeBtn.querySelector('i').classList.replace('far', 'fas'); // Cambia el ícono de corazón vacío a lleno
-                likeBtn.querySelector('i').classList.add('text-red-500'); // Añade color rojo
+            async function handleLike() {
+                if (!globalLikeDocRef) {
+                    showMessage("La función de 'Me Gusta' no está disponible. Error de conexión con la base de datos.", 4000);
+                    return;
+                }
+                
+                try {
+                    await updateDoc(globalLikeDocRef, {
+                        count: increment(1) // Incrementa el contador de forma atómica
+                    });
+                    console.log("Like incrementado en Firestore.");
+                    likeBtn.querySelector('i').classList.replace('far', 'fas'); // Cambia el ícono de corazón vacío a lleno
+                    likeBtn.querySelector('i').classList.add('text-red-500'); // Añade color rojo
+                } catch (e) {
+                    console.error("Error al registrar el like en Firestore:", e);
+                    showMessage("Error al registrar tu 'Me Gusta'. Intenta de nuevo.", 4000);
+                }
             }
 
             // Maneja el evento de compartir
@@ -605,10 +749,11 @@
                 
                 // Actualiza el evento de efemérides
                 function updateEvent() {
-                    contentDiv.classList.remove('efemeride-fade'); // Remueve la clase para reiniciar la animación
-                    void contentDiv.offsetWidth; // Truco para forzar el reinicio de la animación
-                    contentDiv.classList.add('efemeride-fade'); // Añade la clase para iniciar la animación
-                    contentDiv.textContent = events[eventIndex]; // Muestra el evento
+                    const currentEvent = events[eventIndex];
+                    efemerideContentDiv.classList.remove('efemeride-fade'); // Remueve la clase para reiniciar la animación
+                    void efemerideContentDiv.offsetWidth; // Truco para forzar el reinicio de la animación
+                    efemerideContentDiv.classList.add('efemeride-fade'); // Añade la clase para iniciar la animación
+                    efemerideContentDiv.textContent = currentEvent; // Muestra el evento
                     eventIndex = (eventIndex + 1) % events.length; // Pasa al siguiente evento
                 }
                 
@@ -855,18 +1000,71 @@
             changeSourceBtn.addEventListener('click', toggleAudioSource);
             vumeterToggleBtn.addEventListener('click', changeVumeterEffect);
             videoToggleBtn.addEventListener('click', toggleVideo);
-            likeBtn.addEventListener('click', handleLike, { once: true }); // El evento "like" solo se activa una vez
+            likeBtn.addEventListener('click', handleLike); // Ya no es { once: true } para permitir múltiples likes
             shareBtn.addEventListener('click', handleShare);
             themeToggle.addEventListener('change', handleThemeToggle);
             volumeSlider.addEventListener('input', (e) => {
                 radioPlayer.volume = e.target.value; // Ajusta el volumen
+            });
+
+            // Listener para el nuevo botón de efemérides LLM
+            elaborateEfemerideBtn.addEventListener('click', async () => {
+                const currentEfemerideText = efemerideContentDiv.textContent;
+                if (!currentEfemerideText || currentEfemerideText.includes("cargando") || currentEfemerideText.includes("error")) {
+                    showMessage("No hay efeméride válida para detallar en este momento.", 3000);
+                    return;
+                }
+
+                aiInfoContentDiv.innerHTML = '<p class="text-center text-gray-500">Cargando detalles de la IA... ✨</p>';
+                aiInfoModal.classList.remove('hidden');
+
+                try {
+                    const prompt = `Explícame más sobre este evento histórico de forma concisa y en español: "${currentEfemerideText}".`;
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                    const payload = { contents: chatHistory };
+                    const apiKey = ""; // La clave API se inyecta automáticamente en Canvas
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`Error ${response.status}: ${errorData.error.message || response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        aiInfoContentDiv.textContent = text;
+                    } else {
+                        aiInfoContentDiv.textContent = "No se pudo generar información adicional. Intenta de nuevo.";
+                        console.error("Respuesta de la API de Gemini inesperada:", result);
+                    }
+                } catch (error) {
+                    console.error("Error al llamar a la API de Gemini:", error);
+                    aiInfoContentDiv.textContent = `Error al cargar la información: ${error.message}.`;
+                }
+            });
+
+            // Listener para cerrar el modal
+            modalCloseBtn.addEventListener('click', () => {
+                aiInfoModal.classList.add('hidden');
+                aiInfoContentDiv.innerHTML = ''; // Limpiar contenido al cerrar
             });
             
             // --- Inicialización ---
             function init() {
                 radioPlayer.src = streams[currentStreamIndex].url; // Establece la URL de la radio
                 updateStationLabel(); // Actualiza la etiqueta de la estación
-                likeCountSpan.textContent = `${likeCount} Me Gusta`; // Muestra el contador de likes
+                // likeCountSpan.textContent se actualiza vía listener de Firestore
                 
                 // Detecta el tema preferido del sistema y lo aplica
                 if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
