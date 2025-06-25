@@ -87,25 +87,36 @@
         }
 
         /* Estilos para el visualizador de audio (canvas) */
+        #player-display {
+            position: relative; /* Necesario para el posicionamiento absoluto de los hijos */
+            width: 100%;
+            /* Mueve aspect-ratio y background-color aquí para que el contenedor siempre tenga altura */
+            aspect-ratio: 16 / 9; 
+            background-color: #000; /* Fondo para cuando ni canvas ni video están llenando */
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
         #visualizer {
             width: 100%;
             height: 100%;
-            aspect-ratio: 16 / 9; /* Mantener la proporción 16:9 */
-            background-color: #000;
-            border-radius: 0.5rem;
+            /* Elimina aspect-ratio y background-color de aquí */
+            /* Ahora el canvas simplemente llena el 100% del padre */
         }
 
         /* Estilos para el contenedor de video (AJUSTADO PARA NUEVA POSICIÓN) */
-        #videoContainer {
+        /* Estas clases se aplicarán al videoContainer cuando se cree dinámicamente */
+        .video-container-dynamic {
+            position: absolute; /* Para que se superponga al visualizer */
+            top: 0;
+            left: 0;
             width: 100%;
-            /* No más position: absolute, top, left, z-index */
-            aspect-ratio: 16 / 9; /* Mantener la proporción 16:9 */
-            /* Añadido para espaciado en la nueva ubicación */
-            margin-top: 1rem; 
+            height: 100%;
+            /* No es necesario aspect-ratio aquí si el padre ya lo tiene y este lo llena */
         }
         
         /* Estilos para el iframe de video */
-        #videoContainer iframe {
+        .video-container-dynamic iframe {
             width: 100%;
             height: 100%;
             border-radius: 0.5rem;
@@ -220,11 +231,18 @@
                 </div>
             </header>
 
-            <!-- Pantalla del reproductor (solo para el vúmetro, el video estará en otro div) -->
+            <!-- Pantalla del reproductor (vúmetro o video) -->
             <div id="player-display" class="relative w-full rounded-lg overflow-hidden">
                 <canvas id="visualizer"></canvas>
             </div>
             
+            <!-- Efemérides: Ahora debajo del vúmetro -->
+            <div id="efemerides-container" class="mt-4 p-3 rounded-lg text-center flex flex-col items-center justify-center" style="background: linear-gradient(45deg, var(--primary-color), #4a00e0);">
+                <div id="efemeride-content" class="text-white font-semibold text-sm">
+                    <!-- El contenido se inyectará aquí -->
+                </div>
+            </div>
+
             <!-- Etiqueta de la estación actual -->
             <div id="station-display-container" class="text-center -mt-2">
                  <p id="current-station-label" class="text-sm font-semibold opacity-80"></p>
@@ -247,11 +265,6 @@
                 </div>
             </div>
             
-            <!-- Contenedor del video (NUEVA POSICIÓN) -->
-            <div id="videoContainer" class="hidden">
-                <!-- El iframe se inyectará aquí con JavaScript -->
-            </div>
-
             <!-- Íconos de acción -->
             <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 text-center text-xs">
                  <div class="flex flex-col items-center">
@@ -302,32 +315,14 @@
                 </div>
             </div>
             
-            <!-- Efemérides -->
-            <div id="efemerides-container" class="mt-4 p-3 rounded-lg text-center flex flex-col items-center justify-center" style="background: linear-gradient(45deg, var(--primary-color), #4a00e0);">
-                <div id="efemeride-content" class="text-white font-semibold text-sm mb-2">
-                    <!-- El contenido se inyectará aquí -->
-                </div>
-                 <button id="elaborate-efemeride-btn" class="btn-primary px-3 py-1 text-sm rounded-md shadow-md">
-                    ✨ Más sobre esto
-                </button>
-            </div>
-            
              <!-- Caja de mensajes (para notificaciones) -->
              <div id="message-box" class="hidden fixed bottom-5 right-5 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg"></div>
 
         </main>
     </div>
 
-    <!-- Modal para la información de la efeméride generada por IA -->
-    <div id="ai-info-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <button class="modal-close-btn" id="modal-close-btn">&times;</button>
-            <h3 class="text-lg font-bold mb-3" style="color: var(--primary-color);">Detalles de la Efeméride</h3>
-            <div id="ai-info-content" class="text-sm">
-                <!-- Contenido generado por IA aquí -->
-            </div>
-        </div>
-    </div>
+    <!-- Modal para la información de la efeméride generada por IA (eliminado) -->
+    <!-- Se ha eliminado el modal ya que el botón "Más sobre esto" ha sido eliminado. -->
 
     <script type="module">
         // Importa las funciones necesarias de Firebase SDKs
@@ -344,7 +339,6 @@
             const vumeterToggleBtn = document.getElementById('vumeter-toggle-btn');
             const videoToggleBtn = document.getElementById('video-toggle-btn');
             const videoToggleLabel = document.getElementById('video-toggle-label');
-            const videoContainer = document.getElementById('videoContainer');
             const likeBtn = document.getElementById('like-btn');
             const likeCountSpan = document.getElementById('like-count');
             const shareBtn = document.getElementById('share-btn');
@@ -355,18 +349,19 @@
             const currentStationLabel = document.getElementById('current-station-label');
             const radioControls = document.getElementById('radio-controls');
             const stationDisplayContainer = document.getElementById('station-display-container');
-            
+            const playerDisplay = document.getElementById('player-display'); // Obtenido para añadir/eliminar el videoContainer
+
             const startTimeInput = document.getElementById('start-time-input');
             const setStartBtn = document.getElementById('set-start-btn');
             const stopTimeInput = document.getElementById('stop-time-input');
             const setStopBtn = document.getElementById('set-stop-btn');
 
-            // Elementos para la nueva función de efemérides LLM
-            const elaborateEfemerideBtn = document.getElementById('elaborate-efemeride-btn');
+            // Elementos para la nueva función de efemérides LLM - ELIMINADOS
+            // const elaborateEfemerideBtn = document.getElementById('elaborate-efemeride-btn');
             const efemerideContentDiv = document.getElementById('efemeride-content');
-            const aiInfoModal = document.getElementById('ai-info-modal');
-            const modalCloseBtn = document.getElementById('modal-close-btn');
-            const aiInfoContentDiv = document.getElementById('ai-info-content');
+            // const aiInfoModal = document.getElementById('ai-info-modal');
+            // const modalCloseBtn = document.getElementById('modal-close-btn');
+            // const aiInfoContentDiv = document.getElementById('ai-info-content');
 
 
             // --- Configuración de Firebase ---
@@ -578,6 +573,8 @@
             function toggleVideo() {
                 isVideoActive = !isVideoActive; // Invierte el estado del video
 
+                let videoContainer = document.getElementById('videoContainer'); // Intenta obtenerlo si ya existe
+
                 if (isVideoActive) {
                     // --- Mostrar Video ---
                     if (isPlaying) {
@@ -587,9 +584,16 @@
                     
                     // Oculta el visualizador de audio (canvas)
                     canvas.classList.add('hidden');
-                    // Los controles de radio y la etiqueta de la estación permanecen visibles
                     
-                    // Crea y muestra el iframe de video con las nuevas especificaciones
+                    // Si el videoContainer no existe, créalo y añádelo al DOM
+                    if (!videoContainer) {
+                        videoContainer = document.createElement('div');
+                        videoContainer.id = 'videoContainer';
+                        // Añade las clases CSS para posicionamiento y tamaño
+                        videoContainer.classList.add('video-container-dynamic'); 
+                        playerDisplay.appendChild(videoContainer); // Añadir al contenedor del vúmetro
+                    }
+                    
                     const iframe = document.createElement('iframe');
                     iframe.src = "https://player.kick.com/sintonia-tv"; 
                     iframe.setAttribute('height', '720');
@@ -601,21 +605,20 @@
 
                     videoContainer.innerHTML = ''; // Limpia el contenedor de video
                     videoContainer.appendChild(iframe); // Agrega el iframe
-                    videoContainer.classList.remove('hidden'); // Muestra el contenedor de video
+                    // No es necesario remover 'hidden' ya que la clase 'video-container-dynamic' no lo tiene
 
                     // Actualiza el texto y el ícono del botón
                     videoToggleLabel.textContent = "Escuchar Radio";
                     videoToggleBtn.innerHTML = '<i class="fa-solid fa-radio"></i>';
-                    showMessage("Cargando video de TV... Si no se ve, verifica la consola del navegador por errores de incrustación (404, CORS, X-Frame-Options).", 8000);
                 } else {
                     // --- Mostrar Radio ---
-                    // Oculta el video y lo limpia
-                    videoContainer.classList.add('hidden');
-                    videoContainer.innerHTML = '';
+                    // Si el videoContainer existe, quítalo del DOM
+                    if (videoContainer) {
+                        videoContainer.remove(); 
+                    }
 
                     // Muestra el visualizador de audio (canvas)
                     canvas.classList.remove('hidden');
-                    // Los controles de radio y la etiqueta de la estación ya están visibles
 
                     // Actualiza el texto y el ícono del botón
                     videoToggleLabel.textContent = "Ver TV";
@@ -1018,58 +1021,11 @@
                 radioPlayer.volume = e.target.value; // Ajusta el volumen
             });
 
-            // Listener para el nuevo botón de efemérides LLM
-            elaborateEfemerideBtn.addEventListener('click', async () => {
-                const currentEfemerideText = efemerideContentDiv.textContent;
-                if (!currentEfemerideText || currentEfemerideText.includes("cargando") || currentEfemerideText.includes("error")) {
-                    showMessage("No hay efeméride válida para detallar en este momento.", 3000);
-                    return;
-                }
+            // ELIMINADO: Listener para el botón de efemérides LLM
+            // elaborateEfemerideBtn.addEventListener('click', async () => { ... });
 
-                aiInfoContentDiv.innerHTML = '<p class="text-center text-gray-500">Cargando detalles de la IA... ✨</p>';
-                aiInfoModal.classList.remove('hidden');
-
-                try {
-                    const prompt = `Explícame más sobre este evento histórico de forma concisa y en español: "${currentEfemerideText}".`;
-                    let chatHistory = [];
-                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-
-                    const payload = { contents: chatHistory };
-                    const apiKey = ""; // La clave API se inyecta automáticamente en Canvas
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(`Error ${response.status}: ${errorData.error.message || response.statusText}`);
-                    }
-
-                    const result = await response.json();
-                    if (result.candidates && result.candidates.length > 0 &&
-                        result.candidates[0].content && result.candidates[0].content.parts &&
-                        result.candidates[0].content.parts.length > 0) {
-                        const text = result.candidates[0].content.parts[0].text;
-                        aiInfoContentDiv.textContent = text;
-                    } else {
-                        aiInfoContentDiv.textContent = "No se pudo generar información adicional. Intenta de nuevo.";
-                        console.error("Respuesta de la API de Gemini inesperada:", result);
-                    }
-                } catch (error) {
-                    console.error("Error al llamar a la API de Gemini:", error);
-                    aiInfoContentDiv.textContent = `Error al cargar la información: ${error.message}.`;
-                }
-            });
-
-            // Listener para cerrar el modal
-            modalCloseBtn.addEventListener('click', () => {
-                aiInfoModal.classList.add('hidden');
-                aiInfoContentDiv.innerHTML = ''; // Limpiar contenido al cerrar
-            });
+            // ELIMINADO: Listener para cerrar el modal
+            // modalCloseBtn.addEventListener('click', () => { ... });
             
             // --- Inicialización ---
             function init() {
@@ -1090,7 +1046,7 @@
                 loadEfemerides(); // Carga las efemérides
                 
                 // Ajusta el tamaño del canvas al contenedor del reproductor y lo hace responsive
-                const playerDisplay = document.getElementById('player-display');
+                // playerDisplay ya se obtiene al inicio del DOMContentLoaded
                 canvas.width = playerDisplay.clientWidth;
                 canvas.height = playerDisplay.clientHeight;
                 window.addEventListener('resize', () => {
