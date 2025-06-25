@@ -124,7 +124,7 @@
 
         /* Animación de desvanecimiento para las efemérides */
         .efemeride-fade {
-            animation: fadeInOut 8s infinite;
+            animation: fadeInOut 8s infinite; /* Mantener la animación para la transición al cargar la frase */
         }
 
         /* Keyframes para la animación de desvanecimiento */
@@ -236,10 +236,10 @@
                 <canvas id="visualizer"></canvas>
             </div>
             
-            <!-- Efemérides: Ahora debajo del vúmetro -->
+            <!-- Zócalo de Frases Motivacionales: Ahora debajo del vúmetro -->
             <div id="efemerides-container" class="mt-4 p-3 rounded-lg text-center flex flex-col items-center justify-center" style="background: linear-gradient(45deg, var(--primary-color), #4a00e0);">
                 <div id="efemeride-content" class="text-white font-semibold text-sm">
-                    <!-- El contenido se inyectará aquí -->
+                    <!-- La frase se inyectará aquí -->
                 </div>
             </div>
 
@@ -321,9 +321,6 @@
         </main>
     </div>
 
-    <!-- Modal para la información de la efeméride generada por IA (eliminado) -->
-    <!-- Se ha eliminado el modal ya que el botón "Más sobre esto" ha sido eliminado. -->
-
     <script type="module">
         // Importa las funciones necesarias de Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -349,19 +346,15 @@
             const currentStationLabel = document.getElementById('current-station-label');
             const radioControls = document.getElementById('radio-controls');
             const stationDisplayContainer = document.getElementById('station-display-container');
-            const playerDisplay = document.getElementById('player-display'); // Obtenido para añadir/eliminar el videoContainer
+            const playerDisplay = document.getElementById('player-display'); 
 
             const startTimeInput = document.getElementById('start-time-input');
             const setStartBtn = document.getElementById('set-start-btn');
             const stopTimeInput = document.getElementById('stop-time-input');
             const setStopBtn = document.getElementById('set-stop-btn');
 
-            // Elementos para la nueva función de efemérides LLM - ELIMINADOS
-            // const elaborateEfemerideBtn = document.getElementById('elaborate-efemeride-btn');
+            // Elementos para el zócalo de frases
             const efemerideContentDiv = document.getElementById('efemeride-content');
-            // const aiInfoModal = document.getElementById('ai-info-modal');
-            // const modalCloseBtn = document.getElementById('modal-close-btn');
-            // const aiInfoContentDiv = document.getElementById('ai-info-content');
 
 
             // --- Configuración de Firebase ---
@@ -373,7 +366,6 @@
                 storageBucket: "appsintonia-66989.firebasestorage.app",
                 messagingSenderId: "61116779380",
                 appId: "1:61116779380:web:e42c0f702296b17b153a21"
-                // measurementId: "G-3KWXJ5KHRF" // No es necesario para esta funcionalidad
             };
             
             // Para despliegues fuera de Canvas (ej. GitHub Pages), usa tu propio appId directamente.
@@ -444,20 +436,108 @@
             const totalVumeterEffects = 10;
             let animationFrameId;
 
-            // --- Datos de Efemérides (Simulación Interna) ---
-            const efemerides = {
-                '06-25': ["En 1978, Argentina gana su primera Copa Mundial de Fútbol.", "En 1950, comienza la Guerra de Corea."],
-                '01-01': ["En 1959, triunfa la Revolución Cubana liderada por Fidel Castro.", "Día de Año Nuevo."],
-                '03-24': ["En 1976, se produce el último golpe de Estado en Argentina, dando inicio a la dictadura cívico-militar.", "Día Nacional de la Memoria por la Verdad y la Justicia en Argentina."],
-                '04-02': ["En 1982, tropas argentinas desembarcan en las Islas Malvinas, dando inicio a la Guerra de Malvinas.", "Día del Veterano y de los Caídos en la guerra de Malvinas."],
-                '05-01': ["Día Internacional de los Trabajadores.", "En 1994, muere el piloto de Fórmula 1 Ayrton Senna en el Gran Premio de San Marino."],
-                '05-25': ["En 1810, se constituye el primer gobierno patrio en Argentina, la Primera Junta.", "Día de la Revolución de Mayo en Argentina."],
-                '06-20': ["En 1820, muere Manuel Belgrano, creador de la bandera argentina.", "Día de la Bandera en Argentina."],
-                '07-09': ["En 1816, se firma el Acta de la Declaración de Independencia de la Argentina en Tucumán.", "Día de la Independencia en Argentina."],
-                '08-17': ["En 1850, muere el General José de San Martín en Boulogne-sur-Mer, Francia.", "Paso a la Inmortalidad del General José de San Martín."],
-                '10-12': ["En 1492, Cristóbal Colón llega a América.", "Día del Respeto a la Diversidad Cultural."],
-                '12-10': ["En 1983, Raúl Alfonsín asume la presidencia, marcando el retorno de la democracia en Argentina.", "Día de la Restauración de la Democracia en Argentina."],
-            };
+            // --- Frases Motivacionales ---
+            const motivationalPhrases = [
+                "Cree que puedes y ya estás a medio camino.",
+                "El mejor momento para plantar un árbol fue hace 20 años. El segundo mejor momento es ahora.",
+                "Tu actitud, no tu aptitud, determinará tu altitud.",
+                "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
+                "La única forma de hacer un gran trabajo es amar lo que haces.",
+                "Cada mañana nacemos de nuevo. Lo que hacemos hoy es lo que más importa.",
+                "No cuentes los días, haz que los días cuenten.",
+                "La felicidad no es algo hecho. Proviene de tus propias acciones.",
+                "El futuro pertenece a quienes creen en la belleza de sus sueños.",
+                "Un día brillante depende más de tu actitud que del sol.",
+                "No te preocupes por los fracasos, preocúpate por las oportunidades que pierdes cuando ni siquiera lo intentas.",
+                "Convierte los muros que aparecen en tu vida en peldaños hacia tus objetivos.",
+                "Si la oportunidad no llama, construye una puerta.",
+                "El optimismo es la fe que conduce al logro.",
+                "Empieza donde estás. Usa lo que tienes. Haz lo que puedes.",
+                "La vida es 10% lo que te pasa y 90% cómo reaccionas.",
+                "La persona que dice que no se puede hacer no debería interrumpir a la persona que lo está haciendo.",
+                "Hoy es una nueva oportunidad para ser mejor que ayer.",
+                "No dejes que el miedo a perder sea mayor que la emoción de ganar.",
+                "El secreto para salir adelante es empezar.",
+                "La disciplina es el puente entre las metas y los logros.",
+                "Solo aquellos que se atreven a tener grandes fracasos terminan logrando grandes éxitos.",
+                "La vida se encoge o se expande en proporción a tu coraje.",
+                "Tu única limitación es tu propia imaginación.",
+                "No esperes. El momento nunca será el \"justo\".",
+                "La magia es creer en ti mismo. Si puedes hacer eso, puedes hacer que cualquier cosa suceda.",
+                "Un pequeño pensamiento positivo por la mañana puede cambiar todo tu día.",
+                "Cae siete veces, levántate ocho.",
+                "Haz de cada día tu obra maestra.",
+                "La perseverancia no es una carrera larga; son muchas carreras cortas una tras otra.",
+                "No importa lo lento que vayas, siempre y cuando no te detengas.",
+                "El que puede cambiar sus pensamientos puede cambiar su destino.",
+                "La mejor venganza es un éxito masivo.",
+                "Lo que la mente del hombre puede concebir y creer, puede lograr.",
+                "La acción es la clave fundamental de todo éxito.",
+                "Eres más valiente de lo que crees, más fuerte de lo que pareces y más inteligente de lo que piensas.",
+                "Las estrellas no pueden brillar sin oscuridad.",
+                "Tu energía presenta a las personas antes de que hables.",
+                "No es la montaña que conquistamos, sino a nosotros mismos.",
+                "El dolor que sientes hoy será la fuerza que sentirás mañana.",
+                "La vida es como andar en bicicleta. Para mantener el equilibrio, debes seguir moviéndote.",
+                "No mires el reloj; haz lo que él hace. Sigue moviéndote.",
+                "Todo lo que siempre has querido está al otro lado del miedo.",
+                "La clave del éxito es enfocarse en las metas, no en los obstáculos.",
+                "La duda mata más sueños que el fracaso.",
+                "Un viaje de mil millas comienza con un solo paso.",
+                "Trabaja duro en silencio y deja que tu éxito haga todo el ruido.",
+                "Si puedes soñarlo, puedes hacerlo.",
+                "La motivación es lo que te pone en marcha. El hábito es lo que hace que sigas.",
+                "No se trata de si te derriban, se trata de si te levantas.",
+                "Apunta a la luna. Si fallas, podrías golpear una estrella.",
+                "Nunca eres demasiado viejo para fijar otra meta o para soñar un nuevo sueño.",
+                "La calidad no es un acto, es un hábito.",
+                "El carácter es poder.",
+                "La mejor manera de predecir el futuro es crearlo.",
+                "Sé el cambio que deseas ver en el mundo.",
+                "La alegría no está en las cosas, está en nosotros.",
+                "El aprendizaje es un tesoro que seguirá a su dueño a todas partes.",
+                "Lo imposible es solo una opinión.",
+                "La mente es todo. En lo que piensas, te conviertes.",
+                "No hay atajos para ningún lugar al que valga la pena ir.",
+                "El éxito no es final, el fracaso no es fatal: es el coraje de continuar lo que cuenta.",
+                "Sé tú mismo; todos los demás ya están ocupados.",
+                "La simplicidad es la máxima sofisticación.",
+                "El que no es lo suficientemente valiente para tomar riesgos no logrará nada en la vida.",
+                "La excelencia no es una habilidad. Es una actitud.",
+                "No puedes tener una vida positiva con una mente negativa.",
+                "La gente olvidará lo que dijiste, la gente olvidará lo que hiciste, pero la gente nunca olvidará cómo los hiciste sentir.",
+                "Si buscas resultados distintos, no hagas siempre lo mismo.",
+                "La vida es una aventura atrevida o no es nada.",
+                "El momento en que quieres renunciar es el momento en que necesitas seguir insistiendo.",
+                "Cree en los comienzos, incluso después de cien finales.",
+                "La paciencia y la perseverancia tienen un efecto mágico ante el cual las dificultades desaparecen y los obstáculos se desvanecen.",
+                "Tu futuro es creado por lo que haces hoy, no mañana.",
+                "El optimismo perpetuo es un multiplicador de fuerza.",
+                "Nunca subestimes el poder que tienes para llevar tu vida en una nueva dirección.",
+                "La felicidad es una dirección, no un lugar.",
+                "Haz algo hoy que tu futuro yo te agradezca.",
+                "El único lugar donde el éxito viene antes que el trabajo es en el diccionario.",
+                "Las dificultades a menudo preparan a la gente común para un destino extraordinario.",
+                "Si no te gusta algo, cámbialo. Si no puedes cambiarlo, cambia tu actitud.",
+                "El coraje no siempre ruge. A veces, el coraje es la vocecita al final del día que dice: \"Mañana lo intentaré de nuevo\".",
+                "El universo no te da lo que pides con tus pensamientos; te da lo que exiges con tus acciones.",
+                "Las limitaciones solo viven en nuestras mentes. Pero si usamos nuestra imaginación, nuestras posibilidades se vuelven ilimitadas.",
+                "Tu mente es un imán. Si piensas en bendiciones, atraes bendiciones. Si piensas en problemas, atraes problemas.",
+                "Un ganador es un soñador que nunca se rinde.",
+                "No dejes que tu pasado ocupe demasiado de tu presente.",
+                "El sol es nuevo cada día.",
+                "La inspiración existe, pero tiene que encontrarte trabajando.",
+                "Un objetivo sin un plan es solo un deseo.",
+                "El valor es la resistencia al miedo, el dominio del miedo, no la ausencia de miedo.",
+                "No tienes que ser grande para empezar, pero tienes que empezar para ser grande.",
+                "Cada día puede no ser bueno, pero hay algo bueno en cada día.",
+                "La vida es un eco. Lo que envías, regresa. Lo que siembras, cosechas.",
+                "La confianza en uno mismo es el primer secreto del éxito.",
+                "Los desafíos son los que hacen la vida interesante y superarlos es lo que hace que la vida tenga sentido.",
+                "Sonríe, es terapia gratuita.",
+                "El fracaso es simplemente la oportunidad de comenzar de nuevo, esta vez de forma más inteligente.",
+                "Todo progresa a través del cambio."
+            ];
 
             // --- Estado de la aplicación ---
             let isPlaying = false;
@@ -750,30 +830,33 @@
             });
 
 
-            // --- Lógica de Efemérides ---
-            // Carga y muestra las efemérides del día
-            function loadEfemerides() {
-                const today = new Date();
-                const day = String(today.getDate()).padStart(2, '0'); // Día actual (formato DD)
-                const month = String(today.getMonth() + 1).padStart(2, '0'); // Mes actual (formato MM)
-                const key = `${month}-${day}`; // Clave para buscar en el objeto efemerides
-                
-                const events = efemerides[key] || ["Hoy es un gran día para escuchar buena música."]; // Eventos para hoy
-                let eventIndex = 0;
-                
-                // Actualiza el evento de efemérides
-                function updateEvent() {
-                    const currentEvent = events[eventIndex];
-                    efemerideContentDiv.classList.remove('efemeride-fade'); // Remueve la clase para reiniciar la animación
-                    void efemerideContentDiv.offsetWidth; // Truco para forzar el reinicio de la animación
-                    efemerideContentDiv.classList.add('efemeride-fade'); // Añade la clase para iniciar la animación
-                    efemerideContentDiv.textContent = currentEvent; // Muestra el evento
-                    eventIndex = (eventIndex + 1) % events.length; // Pasa al siguiente evento
+            // --- Lógica de Frases Motivacionales (anteriormente Efemérides) ---
+            // Carga y muestra la frase del día
+            function loadEfemerides() { // Renombrada de loadEfemerides a loadMotivationalPhrase para mayor claridad
+                const ONE_DAY_MS = 24 * 60 * 60 * 1000; // Milisegundos en un día
+
+                let lastPhraseIndex = parseInt(localStorage.getItem('lastPhraseIndex') || '0');
+                let lastPhraseUpdate = parseInt(localStorage.getItem('lastPhraseUpdate') || '0');
+                const now = Date.now();
+
+                // Comprobar si ha pasado al menos un día
+                if (now - lastPhraseUpdate >= ONE_DAY_MS) {
+                    // Si es un nuevo día o nunca se ha guardado, avanzamos al siguiente.
+                    lastPhraseIndex = (lastPhraseIndex + 1) % motivationalPhrases.length;
+                    localStorage.setItem('lastPhraseIndex', lastPhraseIndex.toString());
+                    localStorage.setItem('lastPhraseUpdate', now.toString());
+                    console.log("Nueva frase seleccionada para el día.");
+                } else {
+                    console.log("Mostrando la misma frase del día.");
                 }
                 
-                updateEvent(); // Muestra el primer evento inmediatamente
-                setInterval(updateEvent, 8000); // Cambia el evento cada 8 segundos
+                const currentPhrase = motivationalPhrases[lastPhraseIndex];
+                efemerideContentDiv.classList.remove('efemeride-fade'); // Reinicia la animación
+                void efemerideContentDiv.offsetWidth; // Fuerza el reflow para reiniciar la animación
+                efemerideContentDiv.classList.add('efemeride-fade'); // Aplica la animación
+                efemerideContentDiv.textContent = currentPhrase; // Muestra la frase
             }
+
 
             // --- Funciones de dibujo del Vúmetro ---
             // Función principal de dibujo del vúmetro (loop de animación)
@@ -1014,39 +1097,31 @@
             changeSourceBtn.addEventListener('click', toggleAudioSource);
             vumeterToggleBtn.addEventListener('click', changeVumeterEffect);
             videoToggleBtn.addEventListener('click', toggleVideo);
-            likeBtn.addEventListener('click', handleLike); // Ya no es { once: true } para permitir múltiples likes
+            likeBtn.addEventListener('click', handleLike); 
             shareBtn.addEventListener('click', handleShare);
             themeToggle.addEventListener('change', handleThemeToggle);
             volumeSlider.addEventListener('input', (e) => {
-                radioPlayer.volume = e.target.value; // Ajusta el volumen
+                radioPlayer.volume = e.target.value; 
             });
 
-            // ELIMINADO: Listener para el botón de efemérides LLM
-            // elaborateEfemerideBtn.addEventListener('click', async () => { ... });
-
-            // ELIMINADO: Listener para cerrar el modal
-            // modalCloseBtn.addEventListener('click', () => { ... });
-            
             // --- Inicialización ---
             function init() {
-                radioPlayer.src = streams[currentStreamIndex].url; // Establece la URL de la radio
-                updateStationLabel(); // Actualiza la etiqueta de la estación
-                // likeCountSpan.textContent se actualiza vía listener de Firestore
+                radioPlayer.src = streams[currentStreamIndex].url; 
+                updateStationLabel(); 
                 
                 // Detecta el tema preferido del sistema y lo aplica
                 if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-                    themeToggle.checked = false; // Desmarca el toggle si es tema claro
+                    themeToggle.checked = false; 
                     document.documentElement.classList.remove('dark');
                     document.documentElement.classList.add('light');
                 } else {
-                    themeToggle.checked = true; // Marca el toggle si es tema oscuro
+                    themeToggle.checked = true; 
                     document.documentElement.classList.add('dark');
                     document.documentElement.classList.remove('light');
                 }
-                loadEfemerides(); // Carga las efemérides
+                loadEfemerides(); // Llama a la nueva función de carga de frases motivacionales
                 
                 // Ajusta el tamaño del canvas al contenedor del reproductor y lo hace responsive
-                // playerDisplay ya se obtiene al inicio del DOMContentLoaded
                 canvas.width = playerDisplay.clientWidth;
                 canvas.height = playerDisplay.clientHeight;
                 window.addEventListener('resize', () => {
@@ -1055,7 +1130,7 @@
                 });
             }
 
-            init(); // Llama a la función de inicialización al cargar la página
+            init(); 
         });
     </script>
 </body>
