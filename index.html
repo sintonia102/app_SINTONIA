@@ -38,7 +38,7 @@
             --text-color: var(--text-dark);
             --card-color: var(--card-dark);
             --primary-color: var(--primary-dark);
-            --shadow-color: var(--shadow-dark);
+            --shadow-color: var(--shadow-color);
         }
 
         /* General body styles */
@@ -260,9 +260,9 @@
                     <button id="admin-toggle-btn" class="btn-icon text-xl ml-4 hidden" title="Modo Administrador">
                         <i class="fa-solid fa-user-shield"></i>
                     </button>
-                    <!-- New: Google Sign-in button for admin -->
-                    <button id="sign-in-google-btn" class="btn-primary px-3 py-1 text-sm rounded-md ml-2 hidden">
-                        Iniciar Sesión Admin
+                    <!-- New: Google Sign-in button for admin (now an icon) -->
+                    <button id="sign-in-google-btn" class="btn-icon text-xl ml-4 hidden" title="Iniciar Sesión Administrador">
+                        <i class="fa-solid fa-lock"></i>
                     </button>
                 </div>
             </header>
@@ -564,15 +564,14 @@
                         if (isAdmin) {
                             adminToggleBtn.classList.remove('hidden');
                             adminToggleBtn.classList.add('admin-active-btn'); 
-                            signInGoogleBtn.classList.add('hidden'); 
-                            showMessage("Modo Administrador disponible.", false, 3000);
+                            signInGoogleBtn.classList.add('hidden'); // Hide sign-in button if admin is already active
                         } else {
                             adminToggleBtn.classList.add('hidden');
                             adminToggleBtn.classList.remove('admin-active-btn'); 
                             if (user.isAnonymous) { 
-                                signInGoogleBtn.classList.remove('hidden');
+                                signInGoogleBtn.classList.remove('hidden'); // Show sign-in button if anonymous
                             } else {
-                                signInGoogleBtn.classList.add('hidden'); 
+                                signInGoogleBtn.classList.add('hidden'); // Hide sign-in button if not anonymous (i.e., signed in with non-admin Google account)
                             }
                         }
 
@@ -585,7 +584,7 @@
                         isAdmin = false;
                         adminToggleBtn.classList.add('hidden');
                         adminToggleBtn.classList.remove('admin-active-btn'); 
-                        signInGoogleBtn.classList.remove('hidden'); 
+                        signInGoogleBtn.classList.remove('hidden'); // Show sign-in button if user is anonymous and not an admin
                         showMessage("No se pudo autenticar. Algunas funciones pueden estar limitadas.", true);
                     }
                     loadDailyEfemérides(); 
@@ -1163,8 +1162,8 @@
                         userId: userId,
                         likes: 0, 
                         likedBy: [],
-                        dislikes: 0, // Initialize dislikes for new messages
-                        dislikedBy: [] // Initialize dislikedBy array
+                        dislikes: 0, 
+                        dislikedBy: [] 
                     });
                     messageNameInput.value = '';
                     messageTextInput.value = '';
@@ -1223,7 +1222,7 @@
                         userId: userId,
                         likes: 0, 
                         likedBy: [],
-                        dislikes: 0, // Official messages also get dislikes
+                        dislikes: 0, 
                         dislikedBy: []
                     };
 
@@ -1402,16 +1401,16 @@
                             messageElement.classList.add('p-3', 'rounded-lg', 'card');
                             
                             const likesCount = msg.likes || 0;
-                            const dislikedCount = msg.dislikes || 0; // Get dislikes count
+                            const dislikedCount = msg.dislikes || 0; 
                             const hasLiked = (msg.likedBy || []).includes(userId);
-                            const hasDisliked = (msg.dislikedBy || []).includes(userId); // Check if user disliked
+                            const hasDisliked = (msg.dislikedBy || []).includes(userId); 
 
                             // Determine button states
                             const likeButtonClass = `message-like-btn ${hasLiked ? 'liked' : ''}`;
-                            const likeButtonDisabled = hasDisliked ? 'disabled' : ''; // Disable like if disliked
+                            const likeButtonDisabled = hasDisliked ? 'disabled' : ''; 
 
                             const dislikeButtonClass = `message-dislike-btn ${hasDisliked ? 'disliked' : ''}`;
-                            const dislikeButtonDisabled = hasLiked ? 'disabled' : ''; // Disable dislike if liked
+                            const dislikeButtonDisabled = hasLiked ? 'disabled' : ''; 
 
 
                             if (msg.isOfficial) {
