@@ -201,16 +201,16 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
-        /* NEW: Styles for active admin button */
+        /* Styles for active admin button */
         .admin-active-btn {
-            background-color: var(--primary-color) !important; /* Fuerza un color de fondo */
-            color: white !important; /* Asegura que el texto sea blanco */
-            border: 2px solid white !important; /* Añade un borde para visibilidad */
-            display: inline-flex !important; /* Asegura que se muestre como un flex item */
+            background-color: var(--primary-color) !important; 
+            color: white !important; 
+            border: 2px solid white !important; 
+            display: inline-flex !important; 
             align-items: center;
             justify-content: center;
-            padding: 0.5rem; /* Añade algo de padding */
-            border-radius: 9999px; /* Lo hace redondo */
+            padding: 0.5rem; 
+            border-radius: 9999px; 
         }
     </style>
 </head>
@@ -367,10 +367,10 @@
                     <button id="publish-official-message-btn" class="btn-primary px-3 py-1 text-sm rounded-md mt-2">Publicar Mensaje Oficial</button>
                 </div>
 
-                <h4 class="text-lg font-semibold mt-4">Mensajes Pendientes de Aprobación:</h4>
+                <h4 class="text-lg font-semibold mt-4">Mensajes Pendientes y Ocultos:</h4>
                 <div id="pending-messages-list" class="space-y-2">
-                    <!-- Pending messages will be loaded here -->
-                    <p class="text-center text-gray-500 text-sm">No hay mensajes pendientes.</p>
+                    <!-- Pending and hidden messages will be loaded here -->
+                    <p class="text-center text-gray-500 text-sm">No hay mensajes pendientes ni ocultos.</p>
                 </div>
             </div>
 
@@ -433,7 +433,7 @@
             const submitMessageBtn = document.getElementById('submit-message-btn');
             const publicMessagesList = document.getElementById('public-messages-list');
             const pendingMessagesList = document.getElementById('pending-messages-list');
-            const signInGoogleBtn = document.getElementById('sign-in-google-btn'); // New DOM element
+            const signInGoogleBtn = document.getElementById('sign-in-google-btn'); 
 
             // --- LOCAL EPHEMERIDES DATA (Replaces Firebase) ---
             const localEphemeridesData = {
@@ -463,7 +463,7 @@
             let globalLikeDocRef = null; 
             let adminSettingsDocRef = null;
             let messagesCollectionRef = null;
-            let adminUserDocRef = null; // Reference to the admin user ID document
+            let adminUserDocRef = null; 
             let isAdmin = false;
 
             // Function to display messages (notifications)
@@ -520,21 +520,20 @@
                         messagesCollectionRef = collection(db, `artifacts/${appIdForFirestore}/public/data/messages`);
                         adminUserDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/adminConfig/adminUser`); 
 
-                        await loadAdminUserConfig(); // This will set isAdmin
+                        await loadAdminUserConfig(); 
 
                         if (isAdmin) {
                             adminToggleBtn.classList.remove('hidden');
                             adminToggleBtn.classList.add('admin-active-btn'); 
-                            signInGoogleBtn.classList.add('hidden'); // Hide Google Sign-in button if already admin
+                            signInGoogleBtn.classList.add('hidden'); 
                             showMessage("Modo Administrador disponible.", false, 3000);
                         } else {
                             adminToggleBtn.classList.add('hidden');
                             adminToggleBtn.classList.remove('admin-active-btn'); 
-                            // Show Google Sign-in button only if current user is anonymous
                             if (user.isAnonymous) { 
                                 signInGoogleBtn.classList.remove('hidden');
                             } else {
-                                signInGoogleBtn.classList.add('hidden'); // Hide if signed in with non-admin Google account
+                                signInGoogleBtn.classList.add('hidden'); 
                             }
                         }
 
@@ -547,7 +546,7 @@
                         isAdmin = false;
                         adminToggleBtn.classList.add('hidden');
                         adminToggleBtn.classList.remove('admin-active-btn'); 
-                        signInGoogleBtn.classList.remove('hidden'); // Show Google Sign-in button if no user is signed in
+                        signInGoogleBtn.classList.remove('hidden'); 
                         showMessage("No se pudo autenticar. Algunas funciones pueden estar limitadas.", true);
                     }
                     loadDailyEfemérides(); 
@@ -1034,8 +1033,9 @@
                     const docSnap = await getDoc(adminUserDocRef);
                     if (docSnap.exists()) {
                         const adminConfig = docSnap.data();
-                        const adminGoogleUids = adminConfig.adminGoogleUids || []; // Expect an array of Google UIDs
-                        isAdmin = adminGoogleUids.includes(userId); // Check if current userId is in the array
+                        // Expect an array of Google UIDs in 'adminGoogleUids'
+                        const adminGoogleUids = adminConfig.adminGoogleUids || []; 
+                        isAdmin = adminGoogleUids.includes(userId); 
                     } else {
                         console.warn("No admin user ID(s) configured in Firestore. Admin panel will not be available.");
                         isAdmin = false;
@@ -1156,6 +1156,32 @@
                 }
             }
 
+            // New: Function to update message status (approve/hide/unhide)
+            async function updateMessageStatus(messageId, newStatus) {
+                if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
+                try {
+                    const msgDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/messages`, messageId);
+                    await updateDoc(msgDocRef, { status: newStatus });
+                    showMessage(`Mensaje ${newStatus === 'approved' ? 'aprobado/mostrado' : 'ocultado'}.`, false);
+                } catch (e) {
+                    console.error("Error updating message status:", e);
+                    showMessage("Error al actualizar el estado del mensaje.", true);
+                }
+            }
+
+            // Existing: Function to delete a message permanently
+            async function deleteMessage(messageId) {
+                if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
+                try {
+                    const msgDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/messages`, messageId);
+                    await deleteDoc(msgDocRef);
+                    showMessage("Mensaje eliminado permanentemente.", false);
+                } catch (e) {
+                    console.error("Error deleting message:", e);
+                    showMessage("Error al eliminar mensaje.", true);
+                }
+            }
+
             function loadMessages() {
                 if (!messagesCollectionRef) return;
 
@@ -1169,6 +1195,7 @@
 
                     allMessages.sort((a, b) => b.timestamp - a.timestamp);
 
+                    // Filter for public (approved) messages
                     const publicMessages = allMessages.filter(msg => msg.status === 'approved');
                     publicMessagesList.innerHTML = ''; 
                     if (publicMessages.length === 0) {
@@ -1184,67 +1211,67 @@
                                 <p class="font-bold">${msg.name}</p>
                                 <p class="text-sm mt-1">${msg.message}</p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${new Date(msg.timestamp).toLocaleString()}</p>
+                                ${isAdmin ? `
+                                <div class="mt-2 space-x-2">
+                                    <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded-md delete-public-btn" data-id="${msg.id}">Eliminar</button>
+                                    <button class="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 text-xs rounded-md hide-public-btn" data-id="${msg.id}">Ocultar</button>
+                                </div>
+                                ` : ''}
                             `;
                             publicMessagesList.appendChild(messageElement);
                         });
+
+                        // Add event listeners for new public message buttons (only if admin)
+                        if (isAdmin) {
+                            publicMessagesList.querySelectorAll('.delete-public-btn').forEach(button => {
+                                button.addEventListener('click', (e) => deleteMessage(e.target.dataset.id));
+                            });
+                            publicMessagesList.querySelectorAll('.hide-public-btn').forEach(button => {
+                                button.addEventListener('click', (e) => updateMessageStatus(e.target.dataset.id, 'hidden'));
+                            });
+                        }
                     }
 
+                    // Admin-specific: Filter for pending and hidden messages
                     if (isAdmin) {
-                        const pendingMessages = allMessages.filter(msg => msg.status === 'pending');
+                        const pendingAndHiddenMessages = allMessages.filter(msg => msg.status === 'pending' || msg.status === 'hidden');
                         pendingMessagesList.innerHTML = ''; 
-                        if (pendingMessages.length === 0) {
-                            pendingMessagesList.innerHTML = '<p class="text-center text-gray-500 text-sm">No hay mensajes pendientes.</p>';
+                        if (pendingAndHiddenMessages.length === 0) {
+                            pendingMessagesList.innerHTML = '<p class="text-center text-gray-500 text-sm">No hay mensajes pendientes ni ocultos.</p>';
                         } else {
-                            pendingMessages.forEach((msg) => {
+                            pendingAndHiddenMessages.forEach((msg) => {
                                 const messageElement = document.createElement('div');
                                 messageElement.classList.add('p-3', 'rounded-lg', 'bg-yellow-100', 'dark:bg-yellow-900', 'border', 'border-yellow-400');
                                 messageElement.innerHTML = `
-                                    <p class="font-bold">${msg.name} (Pendiente)</p>
+                                    <p class="font-bold">${msg.name} (${msg.status === 'pending' ? 'Pendiente' : 'Oculto'})</p>
                                     <p class="text-sm mt-1">${msg.message}</p>
                                     <p class="text-xs text-gray-600 dark:text-gray-300 mt-1">${new Date(msg.timestamp).toLocaleString()}</p>
                                     <div class="mt-2 space-x-2">
-                                        <button class="btn-primary px-2 py-1 text-xs rounded-md approve-btn" data-id="${msg.id}">Aprobar</button>
+                                        ${msg.status === 'pending' ?
+                                            `<button class="btn-primary px-2 py-1 text-xs rounded-md approve-btn" data-id="${msg.id}">Aprobar</button>` :
+                                            `<button class="btn-primary px-2 py-1 text-xs rounded-md unhide-btn" data-id="${msg.id}">Mostrar</button>`
+                                        }
                                         <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded-md delete-btn" data-id="${msg.id}">Eliminar</button>
                                     </div>
                                 `;
                                 pendingMessagesList.appendChild(messageElement);
                             });
 
+                            // Add event listeners for approve/unhide/delete buttons after rendering
                             pendingMessagesList.querySelectorAll('.approve-btn').forEach(button => {
-                                button.addEventListener('click', (e) => approveMessage(e.target.dataset.id));
+                                button.addEventListener('click', (e) => updateMessageStatus(e.target.dataset.id, 'approved'));
+                            });
+                            pendingMessagesList.querySelectorAll('.unhide-btn').forEach(button => {
+                                button.addEventListener('click', (e) => updateMessageStatus(e.target.dataset.id, 'approved'));
                             });
                             pendingMessagesList.querySelectorAll('.delete-btn').forEach(button => {
                                 button.addEventListener('click', (e) => deleteMessage(e.target.dataset.id));
                             });
                         }
                     } else {
-                        pendingMessagesList.innerHTML = '<p class="text-center text-gray-500 text-sm">No hay mensajes pendientes.</p>';
+                        pendingMessagesList.innerHTML = '<p class="text-center text-gray-500 text-sm">No hay mensajes pendientes ni ocultos.</p>';
                     }
                 }, console.error);
-            }
-
-            async function approveMessage(messageId) {
-                if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
-                try {
-                    const msgDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/messages`, messageId);
-                    await updateDoc(msgDocRef, { status: 'approved' });
-                    showMessage("Mensaje aprobado.", false);
-                } catch (e) {
-                    console.error("Error approving message:", e);
-                    showMessage("Error al aprobar mensaje.", true);
-                }
-            }
-
-            async function deleteMessage(messageId) {
-                if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
-                try {
-                    const msgDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/messages`, messageId);
-                    await deleteDoc(msgDocRef);
-                    showMessage("Mensaje eliminado.", false);
-                } catch (e) {
-                    console.error("Error deleting message:", e);
-                    showMessage("Error al eliminar mensaje.", true);
-                }
             }
 
             // --- Admin Toggle UI ---
@@ -1309,7 +1336,7 @@
                 saveProhibitedWordsBtn.addEventListener('click', handleSaveProhibitedWords);
                 publishOfficialMessageBtn.addEventListener('click', handlePublishOfficialMessage);
                 submitMessageBtn.addEventListener('click', handleSubmitMessage);
-                signInGoogleBtn.addEventListener('click', signInWithGoogle); // New: Event listener for Google Sign-in
+                signInGoogleBtn.addEventListener('click', signInWithGoogle); 
 
                 radioPlayer.src = streams[currentStreamIndex].url; 
                 updateStationLabel(); 
