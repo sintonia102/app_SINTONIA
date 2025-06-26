@@ -192,6 +192,26 @@
         .message-box.error {
             background-color: #f44336; /* Error color */
         }
+
+        /* Styles for official messages */
+        .official-message {
+            border: 2px solid var(--primary-color);
+            background-color: var(--primary-color); /* Use primary color for background */
+            color: white; /* Ensure text is white for contrast */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* NEW: Styles for active admin button */
+        .admin-active-btn {
+            background-color: var(--primary-color) !important; /* Fuerza un color de fondo */
+            color: white !important; /* Asegura que el texto sea blanco */
+            border: 2px solid white !important; /* Añade un borde para visibilidad */
+            display: inline-flex !important; /* Asegura que se muestre como un flex item */
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem; /* Añade algo de padding */
+            border-radius: 9999px; /* Lo hace redondo */
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -210,6 +230,14 @@
                         <span class="slider"></span>
                     </label>
                     <i class="fa-solid fa-moon text-indigo-400"></i>
+                    <!-- Admin Toggle Button -->
+                    <button id="admin-toggle-btn" class="btn-icon text-xl ml-4 hidden" title="Modo Administrador">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </button>
+                    <!-- New: Google Sign-in button for admin -->
+                    <button id="sign-in-google-btn" class="btn-primary px-3 py-1 text-sm rounded-md ml-2 hidden">
+                        Iniciar Sesión Admin
+                    </button>
                 </div>
             </header>
 
@@ -307,13 +335,65 @@
              <div id="message-box" class="message-box hidden"></div>
 
         </main>
+
+        <!-- Public Message Board Section -->
+        <div class="card w-full max-w-lg rounded-xl p-4 sm:p-6 mt-4 space-y-4">
+            <h2 class="text-2xl font-bold" style="color: var(--primary-color);">Mensajes Públicos</h2>
+            
+            <!-- Admin Controls (hidden by default) -->
+            <div id="admin-controls" class="space-y-4 p-4 rounded-lg bg-gray-100 dark:bg-gray-800 hidden">
+                <h3 class="text-xl font-semibold">Panel de Administrador</h3>
+                
+                <!-- Toggle Auto-Publish -->
+                <div class="flex items-center justify-between">
+                    <span>Publicación Automática:</span>
+                    <label class="switch">
+                        <input type="checkbox" id="auto-publish-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <!-- Prohibited Words Input -->
+                <div>
+                    <label for="prohibited-words-input" class="block text-sm font-medium mb-1">Palabras Prohibidas (separadas por comas):</label>
+                    <input type="text" id="prohibited-words-input" placeholder="ej: malo, feo, grosero" class="w-full p-2 rounded bg-transparent border border-[var(--shadow-color)] text-sm">
+                    <button id="save-prohibited-words-btn" class="btn-primary px-3 py-1 text-sm rounded-md mt-2">Guardar</button>
+                </div>
+
+                <!-- Official Message Input -->
+                <div>
+                    <label for="official-message-input" class="block text-sm font-medium mb-1">Mensaje Oficial:</label>
+                    <textarea id="official-message-input" rows="2" placeholder="Escribe tu mensaje oficial aquí..." class="w-full p-2 rounded bg-transparent border border-[var(--shadow-color)] text-sm"></textarea>
+                    <button id="publish-official-message-btn" class="btn-primary px-3 py-1 text-sm rounded-md mt-2">Publicar Mensaje Oficial</button>
+                </div>
+
+                <h4 class="text-lg font-semibold mt-4">Mensajes Pendientes de Aprobación:</h4>
+                <div id="pending-messages-list" class="space-y-2">
+                    <!-- Pending messages will be loaded here -->
+                    <p class="text-center text-gray-500 text-sm">No hay mensajes pendientes.</p>
+                </div>
+            </div>
+
+            <!-- Message Input Form -->
+            <div class="space-y-2">
+                <input type="text" id="message-name-input" placeholder="Tu nombre" class="w-full p-2 rounded bg-transparent border border-[var(--shadow-color)] text-sm">
+                <textarea id="message-text-input" rows="3" placeholder="Escribe tu mensaje aquí..." class="w-full p-2 rounded bg-transparent border border-[var(--shadow-color)] text-sm"></textarea>
+                <button id="submit-message-btn" class="btn-primary w-full py-2 rounded-md">Enviar Mensaje</button>
+            </div>
+
+            <!-- Display Public Messages -->
+            <div id="public-messages-list" class="space-y-3 pt-4 border-t border-[var(--shadow-color)]">
+                <!-- Public messages will be loaded here -->
+                <p class="text-center text-gray-500 text-sm">Sé el primero en dejar un mensaje!</p>
+            </div>
+        </div>
     </div>
 
     <script type="module">
         // Import necessary functions from Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, increment, collection, addDoc, deleteDoc, query, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', async () => {
             // --- DOM Elements ---
@@ -339,7 +419,22 @@
             const setStopBtn = document.getElementById('set-stop-btn');
             const motivationalPhraseContentDiv = document.getElementById('motivational-phrase-content');
             const dailyEfeméridesDisplay = document.getElementById('daily-efemerides-display');
-            
+
+            // --- New Message Board DOM Elements ---
+            const adminToggleBtn = document.getElementById('admin-toggle-btn');
+            const adminControlsDiv = document.getElementById('admin-controls');
+            const autoPublishToggle = document.getElementById('auto-publish-toggle');
+            const prohibitedWordsInput = document.getElementById('prohibited-words-input');
+            const saveProhibitedWordsBtn = document.getElementById('save-prohibited-words-btn');
+            const officialMessageInput = document.getElementById('official-message-input');
+            const publishOfficialMessageBtn = document.getElementById('publish-official-message-btn');
+            const messageNameInput = document.getElementById('message-name-input');
+            const messageTextInput = document.getElementById('message-text-input');
+            const submitMessageBtn = document.getElementById('submit-message-btn');
+            const publicMessagesList = document.getElementById('public-messages-list');
+            const pendingMessagesList = document.getElementById('pending-messages-list');
+            const signInGoogleBtn = document.getElementById('sign-in-google-btn'); // New DOM element
+
             // --- LOCAL EPHEMERIDES DATA (Replaces Firebase) ---
             const localEphemeridesData = {
                 "01-01": ["Triunfo de la Revolución Cubana (1959): Las fuerzas lideradas por Fidel Castro entran en La Habana, marcando el fin de la dictadura de Fulgencio Batista.","Ocupación Británica de las Malvinas (1833): Una corbeta británica expulsa a las autoridades argentinas y a los pobladores de las Islas Malvinas, iniciando la ocupación ilegal del archipiélago.","Entrada en vigor del Mercosur (1995): El Mercado Común del Sur, integrado por Argentina, Brasil, Paraguay y Uruguay, entra en plena vigencia.","Proclamación de la Emancipación en EE.UU. (1863): Abraham Lincoln declara libres a los esclavos en los estados confederados.","Independencia de Haití (1804): Haití se convierte en la primera república negra del mundo y la segunda nación independiente de América.","Entrada en circulación del Euro (2002): Los billetes y monedas de euro entran en circulación en 12 países de la Unión Europea.",'Nacimiento de J. D. Salinger (1919): Nace en Nueva York el escritor estadounidense, autor de "El guardián entre el centeno".',"Fundación de la Organización Mundial del Comercio (OMC) (1995): Se establece el organismo que supervisa el comercio internacional.","Día del Dominio Público: Cada año, obras de autores fallecidos hace un determinado tiempo pasan a ser de dominio público.","Año Nuevo: Celebración global que marca el inicio de un nuevo año en el calendario gregoriano."],
@@ -360,19 +455,25 @@
                 appId: "1:61116779380:web:e42c0f702296b17b153a21"
             };
             
+            // Determine the app ID for Firestore based on environment or fallback to default
             const appIdForFirestore = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.appId;
 
             let app, db, auth;
             let userId = 'anonymous'; 
             let globalLikeDocRef = null; 
+            let adminSettingsDocRef = null;
+            let messagesCollectionRef = null;
+            let adminUserDocRef = null; // Reference to the admin user ID document
+            let isAdmin = false;
 
-            // Function to display messages
+            // Function to display messages (notifications)
             function showMessage(text, isError = false, duration = 3000) {
                 messageBox.textContent = text;
                 messageBox.classList.remove('hidden', 'show', 'error');
                 if (isError) {
                     messageBox.classList.add('error');
                 }
+                // Trigger reflow to restart animation
                 void messageBox.offsetWidth; 
                 messageBox.classList.add('show');
                 setTimeout(() => {
@@ -381,12 +482,26 @@
                 }, duration);
             }
 
+            // Function to handle Google Sign-In
+            async function signInWithGoogle() {
+                const provider = new GoogleAuthProvider();
+                try {
+                    await signInWithPopup(auth, provider);
+                    showMessage("Sesión de administrador iniciada con Google.", false);
+                } catch (error) {
+                    console.error("Error signing in with Google:", error);
+                    showMessage(`Error al iniciar sesión con Google: ${error.message}`, true);
+                }
+            }
+
             try {
+                // Initialize Firebase app and services
                 const currentFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
                 app = initializeApp(currentFirebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
 
+                // Authenticate user (with custom token if available, otherwise anonymously)
                 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
@@ -394,23 +509,53 @@
                     await signInAnonymously(auth);
                 }
 
-                onAuthStateChanged(auth, (user) => {
+                // Listen for authentication state changes
+                onAuthStateChanged(auth, async (user) => { 
                     if (user) {
                         userId = user.uid;
                         console.log("Firebase Auth Ready. User ID:", userId);
+                        // Set up Firestore document references after user is authenticated
                         globalLikeDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/radioLikes/globalLikeCount`);
+                        adminSettingsDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/adminSettings/config`);
+                        messagesCollectionRef = collection(db, `artifacts/${appIdForFirestore}/public/data/messages`);
+                        adminUserDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/adminConfig/adminUser`); 
+
+                        await loadAdminUserConfig(); // This will set isAdmin
+
+                        if (isAdmin) {
+                            adminToggleBtn.classList.remove('hidden');
+                            adminToggleBtn.classList.add('admin-active-btn'); 
+                            signInGoogleBtn.classList.add('hidden'); // Hide Google Sign-in button if already admin
+                            showMessage("Modo Administrador disponible.", false, 3000);
+                        } else {
+                            adminToggleBtn.classList.add('hidden');
+                            adminToggleBtn.classList.remove('admin-active-btn'); 
+                            // Show Google Sign-in button only if current user is anonymous
+                            if (user.isAnonymous) { 
+                                signInGoogleBtn.classList.remove('hidden');
+                            } else {
+                                signInGoogleBtn.classList.add('hidden'); // Hide if signed in with non-admin Google account
+                            }
+                        }
+
                         setupLikesListener();
+                        loadAdminSettings(); 
+                        loadMessages(); 
                     } else {
                         console.log("No user is signed in.");
                         userId = 'anonymous';
+                        isAdmin = false;
+                        adminToggleBtn.classList.add('hidden');
+                        adminToggleBtn.classList.remove('admin-active-btn'); 
+                        signInGoogleBtn.classList.remove('hidden'); // Show Google Sign-in button if no user is signed in
                         showMessage("No se pudo autenticar. Algunas funciones pueden estar limitadas.", true);
                     }
-                    loadDailyEfemérides();
+                    loadDailyEfemérides(); 
                 });
             } catch (e) {
                 console.error("Error initializing Firebase:", e);
-                showMessage("Error al iniciar la base de datos. Los 'Me Gusta' no estarán disponibles.", true, 8000);
-                loadDailyEfemérides();
+                showMessage("Error al iniciar la base de datos. Las funciones avanzadas no estarán disponibles.", true, 8000);
+                loadDailyEfemérides(); 
             }
 
             // --- Audio Streams ---
@@ -437,9 +582,12 @@
             let startTimeout, stopTimeout;
             let dailyEfemerides = [];
             let dailyEfemeridesIntervalId;
-            
+            let prohibitedWords = [];
+            let autoPublishEnabled = true;
+
+            // --- Audio Context Setup ---
             function setupAudioContext() {
-                if (audioCtx) return;
+                if (audioCtx) return; 
                 try {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                     analyser = audioCtx.createAnalyser();
@@ -455,6 +603,7 @@
                 }
             }
 
+            // --- Radio Playback Functions ---
             function playRadio() {
                 if (isPlaying) return;
                 if (!audioCtx) setupAudioContext();
@@ -466,7 +615,7 @@
                 radioPlayer.play().then(() => {
                     isPlaying = true;
                     playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>'; 
-                    if (!isVideoActive) draw();
+                    if (!isVideoActive) draw(); 
                 }).catch(e => {
                     console.error("Error playing audio:", e);
                     showMessage("No se pudo iniciar la radio. Interactúa con la página primero.", true);
@@ -488,11 +637,11 @@
             
             function toggleAudioSource() {
                 const wasPlaying = isPlaying;
-                if(wasPlaying) pauseRadio();
+                if(wasPlaying) pauseRadio(); 
                 currentStreamIndex = (currentStreamIndex + 1) % streams.length; 
                 const newStream = streams[currentStreamIndex]; 
                 radioPlayer.src = newStream.url;
-                radioPlayer.load();
+                radioPlayer.load(); 
                 updateStationLabel(); 
                 showMessage(`Cambiando a ${newStream.name}`, false, 2000);
                 if (wasPlaying) {
@@ -510,7 +659,7 @@
                 if (isVideoActive) {
                     if (isPlaying) pauseRadio(); 
                     cancelAnimationFrame(animationFrameId); 
-                    canvas.classList.add('hidden');
+                    canvas.classList.add('hidden'); 
                     
                     if (!videoContainer) {
                         videoContainer = document.createElement('div');
@@ -524,10 +673,10 @@
                     videoToggleBtn.innerHTML = '<i class="fa-solid fa-radio"></i>';
                 } else {
                     if (videoContainer) videoContainer.remove(); 
-                    canvas.classList.remove('hidden');
+                    canvas.classList.remove('hidden'); 
                     videoToggleLabel.textContent = "Ver TV";
                     videoToggleBtn.innerHTML = '<i class="fa-solid fa-tv"></i>';
-                    playRadio();
+                    playRadio(); 
                 }
             }
 
@@ -536,6 +685,7 @@
                 showMessage(`Vúmetro Efecto ${currentVumeterEffect + 1}`, false, 1500); 
             }
 
+            // --- Likes Feature (Firebase) ---
             function setupLikesListener() {
                 if (!globalLikeDocRef) return;
                 onSnapshot(globalLikeDocRef, (docSnap) => {
@@ -553,12 +703,14 @@
                     await updateDoc(globalLikeDocRef, { count: increment(1) });
                     likeBtn.querySelector('i').classList.replace('far', 'fas'); 
                     likeBtn.querySelector('i').classList.add('text-red-500'); 
+                    showMessage("¡Gracias por tu Me Gusta!", false);
                 } catch (e) {
                     console.error("Error registering like:", e);
                     showMessage("Error al registrar tu 'Me Gusta'.", true);
                 }
             }
 
+            // --- Share Feature ---
             function handleShare() {
                 if (navigator.share) { 
                     navigator.share({ title: 'SINTONIA Radio', text: '¡Escuchá la mejor radio online!', url: window.location.href });
@@ -568,6 +720,7 @@
                 }
             }
             
+            // --- Theme Toggle ---
             function handleThemeToggle() {
                 document.documentElement.classList.toggle('dark'); 
                 document.documentElement.classList.toggle('light'); 
@@ -592,43 +745,31 @@
                 showMessage(`La radio se apagará en ${minutes} minuto(s).`, false);
             });
 
+            // --- Motivational Phrase Logic (Local Storage) ---
             function loadMotivationalPhrase() { 
                 const today = new Date().toDateString();
                 let lastDate = localStorage.getItem('lastPhraseDate');
                 let phraseIndex = parseInt(localStorage.getItem('phraseIndex') || '0');
 
-                // Logging for debugging
-                console.log(`Current Date: ${today}`);
-                console.log(`Last Stored Date: ${lastDate}`);
-                console.log(`Current Phrase Index: ${phraseIndex}`);
-
                 if (today !== lastDate) {
-                    // It's a new day or first time running
-                    console.log("It's a new day or first run. Changing phrase.");
                     phraseIndex = (phraseIndex + 1) % motivationalPhrases.length;
-                    localStorage.setItem('phraseIndex', phraseIndex.toString()); // Ensure it's stored as a string
+                    localStorage.setItem('phraseIndex', phraseIndex.toString()); 
                     localStorage.setItem('lastPhraseDate', today);
-                    console.log(`New Phrase Index: ${phraseIndex}`);
-                    console.log(`Updated Last Stored Date: ${today}`);
-                } else {
-                    console.log("Same day. Phrase will not change.");
                 }
                 
                 motivationalPhraseContentDiv.textContent = motivationalPhrases[phraseIndex]; 
             }
 
-            // --- Logic to display Daily Ephemerides from LOCAL DATA ---
+            // --- Daily Ephemerides Logic (Local Data) ---
             function loadDailyEfemérides() {
                 const today = new Date();
                 const day = today.getDate();
                 const monthIndex = today.getMonth();
                 
-                // To create the key for data access (MM-DD)
                 const monthForData = String(monthIndex + 1).padStart(2, '0');
                 const dayForData = String(day).padStart(2, '0');
                 const docKey = `${monthForData}-${dayForData}`;
 
-                // To display the formatted date
                 const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
                 const monthName = monthNames[monthIndex];
                 const formattedDate = `${day} de ${monthName}`;
@@ -646,7 +787,6 @@
                 if (dailyEfemeridesIntervalId) clearInterval(dailyEfemeridesIntervalId);
                 if (dailyEfemerides.length === 0) return;
 
-                // Color palette for ephemerides
                 const efemeridesColors = [
                     'linear-gradient(45deg, #2980b9, #3498db)',
                     'linear-gradient(45deg, #c0392b, #e74c3c)',
@@ -671,7 +811,7 @@
                 };
 
                 updateDisplay(); 
-                dailyEfemeridesIntervalId = setInterval(updateDisplay, 8000); // 8 seconds
+                dailyEfemeridesIntervalId = setInterval(updateDisplay, 8000); 
             }
             
             // --- Vumeter Drawing Functions ---
@@ -686,7 +826,14 @@
                     case 0: drawBars(); break;
                     case 1: drawCircular(); break;
                     case 2: drawWave(); break;
-                    default: drawBars();
+                    case 3: drawLineGraph(); break;
+                    case 4: drawMirrorBars(); break;
+                    case 5: drawRadialBars(); break;
+                    case 6: drawDotGrid(); break;
+                    case 7: drawExpandingCircle(); break;
+                    case 8: drawSpiral(); break;
+                    case 9: drawParticleSystem(); break;
+                    default: drawBars(); 
                 }
             }
             
@@ -725,7 +872,7 @@
             const drawWave = () => {
                 analyser.getByteTimeDomainData(dataArray); 
                 canvasCtx.lineWidth = 2;
-                canvasCtx.strokeStyle = `hsl(${Date.now() / 20 % 360}, 100%, 50%)`;
+                canvasCtx.strokeStyle = `hsl(${Date.now() / 20 % 360}, 100%, 50%)`; 
                 canvasCtx.beginPath();
                 const sliceWidth = canvas.width * 1.0 / bufferLength;
                 let x = 0;
@@ -740,6 +887,381 @@
                 canvasCtx.stroke();
             };
 
+            const drawLineGraph = () => {
+                const sliceWidth = canvas.width * 1.0 / bufferLength;
+                let x = 0;
+                canvasCtx.lineWidth = 2;
+                canvasCtx.strokeStyle = `hsl(${Date.now() / 30 % 360}, 80%, 60%)`;
+                canvasCtx.beginPath();
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 255.0;
+                    const y = v * canvas.height;
+                    if (i === 0) {
+                        canvasCtx.moveTo(x, y);
+                    } else {
+                        canvasCtx.lineTo(x, y);
+                    }
+                    x += sliceWidth;
+                }
+                canvasCtx.stroke();
+            };
+
+            const drawMirrorBars = () => {
+                const barWidth = (canvas.width / bufferLength) * 2;
+                let x = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    const barHeight = dataArray[i] * 0.8;
+                    const hue = i * 2;
+                    canvasCtx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+                    canvasCtx.fillRect(x, canvas.height / 2 - barHeight, barWidth, barHeight);
+                    canvasCtx.fillRect(x, canvas.height / 2, barWidth, barHeight);
+                    x += barWidth + 1;
+                }
+            };
+
+            const drawRadialBars = () => {
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const maxRadius = Math.min(centerX, centerY) * 0.8;
+                for (let i = 0; i < bufferLength; i++) {
+                    const barHeight = dataArray[i] / 255.0 * maxRadius;
+                    const angle = (i / bufferLength) * 2 * Math.PI;
+                    const x = centerX + barHeight * Math.cos(angle);
+                    const y = centerY + barHeight * Math.sin(angle);
+                    canvasCtx.strokeStyle = `hsl(${i * 3}, 100%, 60%)`;
+                    canvasCtx.lineWidth = 2;
+                    canvasCtx.beginPath();
+                    canvasCtx.moveTo(centerX, centerY);
+                    canvasCtx.lineTo(x, y);
+                    canvasCtx.stroke();
+                }
+            };
+
+            const drawDotGrid = () => {
+                const dotSize = 3;
+                const spacing = 15;
+                for (let y = spacing; y < canvas.height; y += spacing) {
+                    for (let x = spacing; x < canvas.width; x += spacing) {
+                        const i = Math.floor((x / canvas.width) * bufferLength);
+                        const intensity = dataArray[i] / 255.0;
+                        canvasCtx.fillStyle = `rgba(255, 255, 255, ${intensity})`;
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(x, y, dotSize * intensity, 0, Math.PI * 2);
+                        canvasCtx.fill();
+                    }
+                }
+            };
+
+            const drawExpandingCircle = () => {
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const avgAmplitude = dataArray.reduce((acc, val) => acc + val, 0) / bufferLength;
+                const radius = avgAmplitude * 0.8;
+                canvasCtx.strokeStyle = `hsl(${avgAmplitude * 2 % 360}, 100%, 70%)`;
+                canvasCtx.lineWidth = 3;
+                canvasCtx.beginPath();
+                canvasCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                canvasCtx.stroke();
+            };
+
+            const drawSpiral = () => {
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                canvasCtx.lineWidth = 2;
+                canvasCtx.strokeStyle = `hsl(${Date.now() / 40 % 360}, 100%, 60%)`;
+                canvasCtx.beginPath();
+                for (let i = 0; i < bufferLength; i++) {
+                    const amplitude = dataArray[i] / 255.0;
+                    const angle = (i / bufferLength) * Math.PI * 10; 
+                    const radius = amplitude * Math.min(centerX, centerY) * 0.8;
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+                    if (i === 0) {
+                        canvasCtx.moveTo(x, y);
+                    } else {
+                        canvasCtx.lineTo(x, y);
+                    }
+                }
+                canvasCtx.stroke();
+            };
+
+            const drawParticleSystem = () => {
+                const particles = [];
+                const maxParticles = 100;
+                const particleSize = 2;
+
+                for (let i = 0; i < bufferLength; i += Math.floor(bufferLength / maxParticles)) {
+                    const amplitude = dataArray[i] / 255.0;
+                    if (amplitude > 0.1) { 
+                        particles.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            vx: (Math.random() - 0.5) * 2 * amplitude * 5,
+                            vy: (Math.random() - 0.5) * 2 * amplitude * 5,
+                            color: `hsl(${i * 2 % 360}, 100%, 70%)`,
+                            life: 100, 
+                            maxLife: 100
+                        });
+                    }
+                }
+
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life--;
+
+                    if (p.life <= 0) {
+                        particles.splice(i, 1);
+                        i--;
+                        continue;
+                    }
+
+                    canvasCtx.globalAlpha = p.life / p.maxLife;
+                    canvasCtx.fillStyle = p.color;
+                    canvasCtx.beginPath();
+                    canvasCtx.arc(p.x, p.y, particleSize * (p.life / p.maxLife), 0, Math.PI * 2);
+                    canvasCtx.fill();
+                }
+                canvasCtx.globalAlpha = 1; 
+            };
+
+
+            // --- Admin Settings Logic (Firebase) ---
+            async function loadAdminUserConfig() {
+                if (!adminUserDocRef) return;
+                try {
+                    const docSnap = await getDoc(adminUserDocRef);
+                    if (docSnap.exists()) {
+                        const adminConfig = docSnap.data();
+                        const adminGoogleUids = adminConfig.adminGoogleUids || []; // Expect an array of Google UIDs
+                        isAdmin = adminGoogleUids.includes(userId); // Check if current userId is in the array
+                    } else {
+                        console.warn("No admin user ID(s) configured in Firestore. Admin panel will not be available.");
+                        isAdmin = false;
+                    }
+                } catch (e) {
+                    console.error("Error loading admin user config:", e);
+                    showMessage("Error al cargar la configuración de administrador.", true);
+                    isAdmin = false;
+                }
+            }
+
+            async function loadAdminSettings() {
+                if (!adminSettingsDocRef) return;
+                onSnapshot(adminSettingsDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const settings = docSnap.data();
+                        autoPublishEnabled = settings.autoPublish || false;
+                        prohibitedWords = (settings.prohibitedWords || "").split(',').map(word => word.trim()).filter(word => word.length > 0);
+                        
+                        if (isAdmin) {
+                            autoPublishToggle.checked = autoPublishEnabled;
+                            prohibitedWordsInput.value = settings.prohibitedWords || "";
+                        }
+                    } else {
+                        setDoc(adminSettingsDocRef, { autoPublish: true, prohibitedWords: "" });
+                        autoPublishEnabled = true;
+                        prohibitedWords = [];
+                    }
+                }, console.error);
+            }
+
+            async function handleSaveProhibitedWords() {
+                if (!isAdmin || !adminSettingsDocRef) return showMessage("Acceso denegado.", true);
+                const words = prohibitedWordsInput.value.split(',').map(word => word.trim()).filter(word => word.length > 0).join(',');
+                try {
+                    await updateDoc(adminSettingsDocRef, { prohibitedWords: words });
+                    showMessage("Palabras prohibidas guardadas.", false);
+                } catch (e) {
+                    console.error("Error saving prohibited words:", e);
+                    showMessage("Error al guardar palabras prohibidas.", true);
+                }
+            }
+
+            async function handleAutoPublishToggle() {
+                if (!isAdmin || !adminSettingsDocRef) return showMessage("Acceso denegado.", true);
+                try {
+                    await updateDoc(adminSettingsDocRef, { autoPublish: autoPublishToggle.checked });
+                    showMessage(`Publicación automática: ${autoPublishToggle.checked ? 'Activada' : 'Desactivada'}`, false);
+                } catch (e) {
+                    console.error("Error toggling auto publish:", e);
+                    showMessage("Error al cambiar publicación automática.", true);
+                }
+            }
+
+            // --- Message Board Logic (Firebase) ---
+            function containsProhibitedWords(message) {
+                const lowerCaseMessage = message.toLowerCase();
+                return prohibitedWords.some(word => lowerCaseMessage.includes(word.toLowerCase()));
+            }
+
+            async function handleSubmitMessage() {
+                const name = messageNameInput.value.trim();
+                const message = messageTextInput.value.trim();
+
+                if (!name || !message) {
+                    return showMessage("Por favor, ingresa tu nombre y un mensaje.", true);
+                }
+
+                let status = 'approved';
+                if (containsProhibitedWords(message)) {
+                    status = 'pending';
+                    showMessage("Tu mensaje contiene palabras prohibidas y está pendiente de aprobación del administrador.", true, 5000);
+                } else if (!autoPublishEnabled) {
+                    status = 'pending';
+                    showMessage("Tu mensaje está pendiente de aprobación del administrador.", false, 5000);
+                } else {
+                    showMessage("Mensaje enviado con éxito.", false);
+                }
+
+                try {
+                    await addDoc(messagesCollectionRef, {
+                        name: name,
+                        message: message,
+                        timestamp: Date.now(),
+                        status: status,
+                        isOfficial: false,
+                        userId: userId 
+                    });
+                    messageNameInput.value = '';
+                    messageTextInput.value = '';
+                } catch (e) {
+                    console.error("Error adding message:", e);
+                    showMessage("Error al enviar el mensaje.", true);
+                }
+            }
+
+            async function handlePublishOfficialMessage() {
+                if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
+                const message = officialMessageInput.value.trim();
+                if (!message) {
+                    return showMessage("Por favor, ingresa un mensaje oficial.", true);
+                }
+
+                try {
+                    await addDoc(messagesCollectionRef, {
+                        name: "Administrador SINTONIA",
+                        message: message,
+                        timestamp: Date.now(),
+                        status: 'approved', 
+                        isOfficial: true,
+                        userId: userId
+                    });
+                    officialMessageInput.value = '';
+                    showMessage("Mensaje oficial publicado.", false);
+                } catch (e) {
+                    console.error("Error publishing official message:", e);
+                    showMessage("Error al publicar mensaje oficial.", true);
+                }
+            }
+
+            function loadMessages() {
+                if (!messagesCollectionRef) return;
+
+                const allMessagesQuery = query(messagesCollectionRef); 
+
+                onSnapshot(allMessagesQuery, (querySnapshot) => {
+                    const allMessages = [];
+                    querySnapshot.forEach((doc) => {
+                        allMessages.push({ id: doc.id, ...doc.data() });
+                    });
+
+                    allMessages.sort((a, b) => b.timestamp - a.timestamp);
+
+                    const publicMessages = allMessages.filter(msg => msg.status === 'approved');
+                    publicMessagesList.innerHTML = ''; 
+                    if (publicMessages.length === 0) {
+                        publicMessagesList.innerHTML = '<p class="text-center text-gray-500 text-sm">Sé el primero en dejar un mensaje!</p>';
+                    } else {
+                        publicMessages.forEach((msg) => {
+                            const messageElement = document.createElement('div');
+                            messageElement.classList.add('p-3', 'rounded-lg', 'card');
+                            if (msg.isOfficial) {
+                                messageElement.classList.add('official-message');
+                            }
+                            messageElement.innerHTML = `
+                                <p class="font-bold">${msg.name}</p>
+                                <p class="text-sm mt-1">${msg.message}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${new Date(msg.timestamp).toLocaleString()}</p>
+                            `;
+                            publicMessagesList.appendChild(messageElement);
+                        });
+                    }
+
+                    if (isAdmin) {
+                        const pendingMessages = allMessages.filter(msg => msg.status === 'pending');
+                        pendingMessagesList.innerHTML = ''; 
+                        if (pendingMessages.length === 0) {
+                            pendingMessagesList.innerHTML = '<p class="text-center text-gray-500 text-sm">No hay mensajes pendientes.</p>';
+                        } else {
+                            pendingMessages.forEach((msg) => {
+                                const messageElement = document.createElement('div');
+                                messageElement.classList.add('p-3', 'rounded-lg', 'bg-yellow-100', 'dark:bg-yellow-900', 'border', 'border-yellow-400');
+                                messageElement.innerHTML = `
+                                    <p class="font-bold">${msg.name} (Pendiente)</p>
+                                    <p class="text-sm mt-1">${msg.message}</p>
+                                    <p class="text-xs text-gray-600 dark:text-gray-300 mt-1">${new Date(msg.timestamp).toLocaleString()}</p>
+                                    <div class="mt-2 space-x-2">
+                                        <button class="btn-primary px-2 py-1 text-xs rounded-md approve-btn" data-id="${msg.id}">Aprobar</button>
+                                        <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded-md delete-btn" data-id="${msg.id}">Eliminar</button>
+                                    </div>
+                                `;
+                                pendingMessagesList.appendChild(messageElement);
+                            });
+
+                            pendingMessagesList.querySelectorAll('.approve-btn').forEach(button => {
+                                button.addEventListener('click', (e) => approveMessage(e.target.dataset.id));
+                            });
+                            pendingMessagesList.querySelectorAll('.delete-btn').forEach(button => {
+                                button.addEventListener('click', (e) => deleteMessage(e.target.dataset.id));
+                            });
+                        }
+                    } else {
+                        pendingMessagesList.innerHTML = '<p class="text-center text-gray-500 text-sm">No hay mensajes pendientes.</p>';
+                    }
+                }, console.error);
+            }
+
+            async function approveMessage(messageId) {
+                if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
+                try {
+                    const msgDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/messages`, messageId);
+                    await updateDoc(msgDocRef, { status: 'approved' });
+                    showMessage("Mensaje aprobado.", false);
+                } catch (e) {
+                    console.error("Error approving message:", e);
+                    showMessage("Error al aprobar mensaje.", true);
+                }
+            }
+
+            async function deleteMessage(messageId) {
+                if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
+                try {
+                    const msgDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/messages`, messageId);
+                    await deleteDoc(msgDocRef);
+                    showMessage("Mensaje eliminado.", false);
+                } catch (e) {
+                    console.error("Error deleting message:", e);
+                    showMessage("Error al eliminar mensaje.", true);
+                }
+            }
+
+            // --- Admin Toggle UI ---
+            function toggleAdminControls() {
+                if (isAdmin) {
+                    adminControlsDiv.classList.toggle('hidden');
+                    if (!adminControlsDiv.classList.contains('hidden')) {
+                        showMessage("Panel de Administrador visible.", false, 2000);
+                    } else {
+                        showMessage("Panel de Administrador oculto.", false, 2000);
+                    }
+                } else {
+                    showMessage("No tienes permisos de administrador.", true);
+                }
+            }
+
+            // --- Initialization Function ---
             function init() {
                 playPauseBtn.addEventListener('click', togglePlayPause);
                 volumeSlider.addEventListener('input', (e) => radioPlayer.volume = e.target.value);
@@ -749,6 +1271,45 @@
                 likeBtn.addEventListener('click', handleLike);
                 shareBtn.addEventListener('click', handleShare);
                 themeToggle.addEventListener('change', handleThemeToggle);
+                radioPlayer.addEventListener('error', (e) => {
+                    console.error("Error en el reproductor:", e.target.error);
+                    showMessage(`Error de audio: ${e.target.error.message}`, true, 8000);
+                });
+
+                setStartBtn.addEventListener('click', () => {
+                    const targetTime = new Date(startTimeInput.value);
+                    if (isNaN(targetTime.getTime())) {
+                        showMessage("Por favor, selecciona una fecha y hora válidas para programar el inicio.", true);
+                        return;
+                    }
+                    const delay = targetTime.getTime() - Date.now();
+                    if (delay <= 0) {
+                        showMessage("La hora seleccionada ya pasó.", true);
+                        return;
+                    }
+                    clearTimeout(startTimeout);
+                    startTimeout = setTimeout(() => playRadio(), delay);
+                    showMessage(`Radio programada para iniciar el ${targetTime.toLocaleString()}`, false);
+                });
+
+                setStopBtn.addEventListener('click', () => {
+                    const minutes = parseInt(stopTimeInput.value, 10);
+                    if (isNaN(minutes) || minutes <= 0) {
+                        showMessage("Ingresa un número válido de minutos para apagar.", true);
+                        return;
+                    }
+                    const delay = minutes * 60 * 1000;
+                    clearTimeout(stopTimeout);
+                    stopTimeout = setTimeout(() => pauseRadio(), delay);
+                    showMessage(`La radio se apagará en ${minutes} minuto(s).`, false);
+                });
+
+                adminToggleBtn.addEventListener('click', toggleAdminControls);
+                autoPublishToggle.addEventListener('change', handleAutoPublishToggle);
+                saveProhibitedWordsBtn.addEventListener('click', handleSaveProhibitedWords);
+                publishOfficialMessageBtn.addEventListener('click', handlePublishOfficialMessage);
+                submitMessageBtn.addEventListener('click', handleSubmitMessage);
+                signInGoogleBtn.addEventListener('click', signInWithGoogle); // New: Event listener for Google Sign-in
 
                 radioPlayer.src = streams[currentStreamIndex].url; 
                 updateStationLabel(); 
@@ -766,11 +1327,6 @@
                 window.addEventListener('resize', () => {
                     canvas.width = playerDisplay.clientWidth;
                     canvas.height = playerDisplay.clientHeight;
-                });
-
-                radioPlayer.addEventListener('error', (e) => {
-                    console.error("Error en el reproductor:", e.target.error);
-                    showMessage(`Error de audio: ${e.target.error.message}`, true, 8000);
                 });
             }
 
