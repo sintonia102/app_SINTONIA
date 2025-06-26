@@ -4,6 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SINTONIA</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="https://placehold.co/32x32/1877f2/ffffff?text=S" type="image/x-icon">
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="SINTONIA Radio - Escucha la mejor radio online desde Monte Maíz. Música, noticias y entretenimiento 24/7.">
+    <meta name="keywords" content="radio, online, SINTONIA, Monte Maíz, música, noticias, entretenimiento, streaming, FM">
+    <meta name="author" content="SINTONIA Radio">
+
+    <!-- Open Graph / Facebook / WhatsApp Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sintonia102.github.io/"> <!-- Reemplaza con la URL real de tu app -->
+    <meta property="og:title" content="SINTONIA Radio - Escucha la mejor radio online">
+    <meta property="og:description" content="Hola!! Te invito a ver y escuchar Sintonía, desde Monte Maíz. Si te gusta, y valoras nuestro trabajo, te invitamos a compartir con mas amigos esta aplicación. Gracias!">
+    <meta property="og:image" content="https://placehold.co/1200x630/1877f2/ffffff?text=SINTONIA+RADIO"> <!-- Reemplaza con la URL de tu imagen para compartir -->
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -338,7 +354,7 @@
                 </div>
                 <!-- New: WhatsApp Button -->
                 <div class="flex flex-col items-center">
-                    <a href="https://wa.me/5493472555555" target="_blank" class="btn-icon text-2xl" title="Enviar mensaje por WhatsApp">
+                    <a href="https://wa.me/5493468436655" target="_blank" class="btn-icon text-2xl" title="Enviar mensaje por WhatsApp">
                         <i class="fab fa-whatsapp"></i>
                     </a>
                     <span>WhatsApp</span>
@@ -762,12 +778,47 @@
             }
 
             // --- Share Feature ---
-            function handleShare() {
-                if (navigator.share) { 
-                    navigator.share({ title: 'SINTONIA Radio', text: '¡Escuchá la mejor radio online!', url: window.location.href });
-                } else {
-                    navigator.clipboard.writeText(window.location.href); 
-                    showMessage('¡Link copiado al portapapeles!', false);
+            async function handleShare() {
+                const shareData = {
+                    title: 'SINTONIA Radio',
+                    text: 'Hola!! Te invito a ver y escuchar Sintonía, desde Monte Maíz. Si te gusta, y valoras nuestro trabajo, te invitamos a compartir con mas amigos esta aplicación. Gracias!',
+                    url: window.location.href,
+                };
+
+                // For sharing files, you generally need to fetch them as Blobs or use DataTransfer.
+                // For simplicity and broad compatibility, we'll try to share the image URL.
+                // Note: Direct file sharing via navigator.share() is complex and depends on browser/OS.
+                const imageUrl = 'https://placehold.co/600x400/1877f2/ffffff?text=SINTONIA+APP'; // Replace with your actual image URL
+
+                try {
+                    // Attempt to fetch the image to create a Blob for sharing
+                    const response = await fetch(imageUrl);
+                    const blob = await response.blob();
+                    const file = new File([blob], 'sintonia_app.png', { type: blob.type });
+
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: shareData.title,
+                            text: shareData.text,
+                            url: shareData.url,
+                        });
+                        showMessage('¡Contenido compartido con éxito!', false);
+                    } else if (navigator.share) {
+                        // Fallback if file sharing is not supported, but basic sharing is
+                        await navigator.share(shareData);
+                        showMessage('¡Link y texto compartido con éxito!', false);
+                    } else {
+                        // Fallback if Web Share API is not available
+                        navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+                        showMessage('¡Texto y link copiados al portapapeles!', false);
+                    }
+                } catch (e) {
+                    console.error("Error sharing:", e);
+                    showMessage(`Error al compartir: ${e.message}`, true);
+                    // Fallback to clipboard if share fails
+                    navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+                    showMessage('¡Texto y link copiados al portapapeles!', false);
                 }
             }
             
