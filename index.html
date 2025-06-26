@@ -340,7 +340,7 @@
             const motivationalPhraseContentDiv = document.getElementById('motivational-phrase-content');
             const dailyEfeméridesDisplay = document.getElementById('daily-efemerides-display');
             
-            // --- DATOS LOCALES DE EFEMÉRIDES (Reemplaza a Firebase) ---
+            // --- LOCAL EPHEMERIDES DATA (Replaces Firebase) ---
             const localEphemeridesData = {
                 "01-01": ["Triunfo de la Revolución Cubana (1959): Las fuerzas lideradas por Fidel Castro entran en La Habana, marcando el fin de la dictadura de Fulgencio Batista.","Ocupación Británica de las Malvinas (1833): Una corbeta británica expulsa a las autoridades argentinas y a los pobladores de las Islas Malvinas, iniciando la ocupación ilegal del archipiélago.","Entrada en vigor del Mercosur (1995): El Mercado Común del Sur, integrado por Argentina, Brasil, Paraguay y Uruguay, entra en plena vigencia.","Proclamación de la Emancipación en EE.UU. (1863): Abraham Lincoln declara libres a los esclavos en los estados confederados.","Independencia de Haití (1804): Haití se convierte en la primera república negra del mundo y la segunda nación independiente de América.","Entrada en circulación del Euro (2002): Los billetes y monedas de euro entran en circulación en 12 países de la Unión Europea.",'Nacimiento de J. D. Salinger (1919): Nace en Nueva York el escritor estadounidense, autor de "El guardián entre el centeno".',"Fundación de la Organización Mundial del Comercio (OMC) (1995): Se establece el organismo que supervisa el comercio internacional.","Día del Dominio Público: Cada año, obras de autores fallecidos hace un determinado tiempo pasan a ser de dominio público.","Año Nuevo: Celebración global que marca el inicio de un nuevo año en el calendario gregoriano."],
                 "01-02": ['Nacimiento de Carlos "Lole" Reutemann (1942): Nace en Santa Fe el destacado piloto de Fórmula 1 y posterior gobernador de su provincia.',"Toma de Granada (1492): Los Reyes Católicos conquistan el Reino de Granada, último bastión musulmán en la Península Ibérica.","Nacimiento de Isaac Asimov (1920): Nace en Rusia el prolífico escritor y divulgador científico, maestro de la ciencia ficción.","Primer alunizaje suave de una sonda (1959): La sonda soviética Luna 1 se convierte en la primera nave en escapar de la gravedad terrestre.","Japón captura Manila (1942): Durante la Segunda Guerra Mundial, las tropas japonesas ocupan la capital de Filipinas.",'Fallecimiento de Fausto Coppi (1960): Muere el legendario ciclista italiano, apodado "Il Campionissimo".',"Día Internacional del Policía: Se rinde homenaje a los oficiales de policía caídos en cumplimiento de su deber.","Se funda el Racing Club (1903): Se funda en Avellaneda uno de los cinco grandes del fútbol argentino.","Luis Muñoz Marín se convierte en el primer gobernador de Puerto Rico (1949): Es el primer gobernador elegido democráticamente en la isla.","Se declara monumento histórico la casa de Domingo F. Sarmiento (1910): La casa natal del prócer en San Juan es protegida por su valor histórico."],
@@ -349,7 +349,7 @@
                 "12-31": ["Nochevieja / Víspera de Año Nuevo: Celebración global que marca el fin de un año y la espera del siguiente.","Se entrega el Canal de Panamá a Panamá (1999): Estados Unidos transfiere el control total del canal a Panamá, en cumplimiento de los Tratados Torrijos-Carter.","Se funda la Compañía Británica de las Indias Orientales (1600).","Thomas Edison demuestra la luz incandescente (1879): Realiza la primera demostración pública de su bombilla.","Fallecimiento de Miguel de Unamuno (1936).","Se retira el Plan Marshall (1951).","Nacimiento de Henri Matisse (1869).","Boris Yeltsin renuncia a la presidencia de Rusia (1999): Deja a Vladimir Putin como presidente interino.","Fallecimiento de George Marshall (1959).",'Se estrena "El Padrino II" (1974).']
             };
             
-            // --- Configuración de Firebase ---
+            // --- Firebase Configuration ---
             const firebaseConfig = {
                 apiKey: "AIzaSyDomYzzPU9zxP9KdMGKvOrrNlwt0RLVE7Y",
                 authDomain: "appsintonia-66989.firebaseapp.com",
@@ -365,7 +365,7 @@
             let userId = 'anonymous'; 
             let globalLikeDocRef = null; 
 
-            // Función para mostrar mensajes
+            // Function to display messages
             function showMessage(text, isError = false, duration = 3000) {
                 messageBox.textContent = text;
                 messageBox.classList.remove('hidden', 'show', 'error');
@@ -412,25 +412,25 @@
                 loadDailyEfemérides();
             }
 
-            // --- Streams de Audio ---
+            // --- Audio Streams ---
             const streams = [
                 { name: "SINTONIA", url: "https://stream.radioservice.org/8046/stream" },
                 { name: "SINTONIA 2", url: "https://stream.zeno.fm/40x1zezb7nhvv" }
             ];
             let currentStreamIndex = 0;
 
-            // --- Configuración del Vúmetro ---
+            // --- Vumeter Configuration ---
             let audioCtx, analyser, source, dataArray, bufferLength;
             let currentVumeterEffect = 0;
             const totalVumeterEffects = 10;
             let animationFrameId;
 
-            // --- Frases Motivacionales ---
+            // --- Motivational Phrases ---
             const motivationalPhrases = [
                 "Cree que puedes y ya estás a medio camino.", "El mejor momento para plantar un árbol fue hace 20 años. El segundo mejor momento es ahora.", "Tu actitud, no tu aptitud, determinará tu altitud.", "El éxito es la suma de pequeños esfuerzos repetidos día tras día.", "La única forma de hacer un gran trabajo es amar lo que haces."
             ];
 
-            // --- Estado de la Aplicación ---
+            // --- Application State ---
             let isPlaying = false;
             let isVideoActive = false; 
             let startTimeout, stopTimeout;
@@ -572,7 +572,7 @@
                 document.documentElement.classList.toggle('light'); 
             }
 
-            // --- Lógica de Programadores ---
+            // --- Scheduler Logic ---
             setStartBtn.addEventListener('click', () => {
                 const targetTime = new Date(startTimeInput.value).getTime(); 
                 const delay = targetTime - Date.now(); 
@@ -596,27 +596,38 @@
                 let lastDate = localStorage.getItem('lastPhraseDate');
                 let phraseIndex = parseInt(localStorage.getItem('phraseIndex') || '0');
 
+                // Logging for debugging
+                console.log(`Current Date: ${today}`);
+                console.log(`Last Stored Date: ${lastDate}`);
+                console.log(`Current Phrase Index: ${phraseIndex}`);
+
                 if (today !== lastDate) {
+                    // It's a new day or first time running
+                    console.log("It's a new day or first run. Changing phrase.");
                     phraseIndex = (phraseIndex + 1) % motivationalPhrases.length;
-                    localStorage.setItem('phraseIndex', phraseIndex);
+                    localStorage.setItem('phraseIndex', phraseIndex.toString()); // Ensure it's stored as a string
                     localStorage.setItem('lastPhraseDate', today);
+                    console.log(`New Phrase Index: ${phraseIndex}`);
+                    console.log(`Updated Last Stored Date: ${today}`);
+                } else {
+                    console.log("Same day. Phrase will not change.");
                 }
                 
                 motivationalPhraseContentDiv.textContent = motivationalPhrases[phraseIndex]; 
             }
 
-            // --- Lógica para mostrar Efemérides Diarias desde DATOS LOCALES ---
+            // --- Logic to display Daily Ephemerides from LOCAL DATA ---
             function loadDailyEfemérides() {
                 const today = new Date();
                 const day = today.getDate();
                 const monthIndex = today.getMonth();
                 
-                // Para crear la clave para acceder a los datos (MM-DD)
+                // To create the key for data access (MM-DD)
                 const monthForData = String(monthIndex + 1).padStart(2, '0');
                 const dayForData = String(day).padStart(2, '0');
                 const docKey = `${monthForData}-${dayForData}`;
 
-                // Para mostrar la fecha formateada
+                // To display the formatted date
                 const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
                 const monthName = monthNames[monthIndex];
                 const formattedDate = `${day} de ${monthName}`;
@@ -634,7 +645,7 @@
                 if (dailyEfemeridesIntervalId) clearInterval(dailyEfemeridesIntervalId);
                 if (dailyEfemerides.length === 0) return;
 
-                // Paleta de colores para las efemérides
+                // Color palette for ephemerides
                 const efemeridesColors = [
                     'linear-gradient(45deg, #2980b9, #3498db)',
                     'linear-gradient(45deg, #c0392b, #e74c3c)',
@@ -659,10 +670,10 @@
                 };
 
                 updateDisplay(); 
-                dailyEfemeridesIntervalId = setInterval(updateDisplay, 8000); // 8 segundos
+                dailyEfemeridesIntervalId = setInterval(updateDisplay, 8000); // 8 seconds
             }
             
-            // --- Funciones de Dibujo del Vúmetro ---
+            // --- Vumeter Drawing Functions ---
             function draw() {
                 if (!isPlaying || isVideoActive || !analyser) return;
                 animationFrameId = requestAnimationFrame(draw); 
