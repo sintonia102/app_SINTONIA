@@ -368,7 +368,11 @@
                 <div>
                     <label for="official-message-link-input" class="block text-sm font-medium mb-1">URL del Enlace (opcional):</label>
                     <input type="url" id="official-message-link-input" placeholder="https://ejemplo.com" class="w-full p-2 rounded bg-transparent border border-[var(--shadow-color)] text-sm">
-                    <p class="text-xs text-gray-500 mt-1">Deja vacío si no quieres un enlace.</p>
+                </div>
+                <div>
+                    <label for="official-message-link-display-text-input" class="block text-sm font-medium mb-1">Texto a enlazar (debe estar en el mensaje oficial):</label>
+                    <input type="text" id="official-message-link-display-text-input" placeholder="Ej: Visita nuestra web" class="w-full p-2 rounded bg-transparent border border-[var(--shadow-color)] text-sm">
+                    <p class="text-xs text-gray-500 mt-1">Si este texto no se encuentra en el mensaje, o si la URL está vacía, no se generará un enlace.</p>
                     <button id="publish-official-message-btn" class="btn-primary px-3 py-1 text-sm rounded-md mt-2">Publicar Mensaje Oficial</button>
                 </div>
 
@@ -434,6 +438,7 @@
             // Updated DOM elements for official message input
             const officialMessageTextInput = document.getElementById('official-message-text-input');
             const officialMessageLinkInput = document.getElementById('official-message-link-input');
+            const officialMessageLinkDisplayText = document.getElementById('official-message-link-display-text-input'); // New DOM element
             const publishOfficialMessageBtn = document.getElementById('publish-official-message-btn');
             const messageNameInput = document.getElementById('message-name-input');
             const messageTextInput = document.getElementById('message-text-input');
@@ -472,7 +477,7 @@
             let messagesCollectionRef = null;
             let adminUserDocRef = null; 
             let isAdmin = false;
-            let currentOfficialMessageDocId = null; // To store the ID of the current official message for editing
+            let currentOfficialMessageDocId = null; 
 
             // Function to display messages (notifications)
             function showMessage(text, isError = false, duration = 3000) {
@@ -1143,48 +1148,59 @@
                 if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
                 const officialText = officialMessageTextInput.value.trim();
                 const officialLink = officialMessageLinkInput.value.trim();
+                const officialLinkDisplayText = officialMessageLinkDisplayText.value.trim(); // Get new field value
 
                 if (!officialText) {
                     return showMessage("Por favor, ingresa el texto del mensaje oficial.", true);
                 }
 
                 let messageToStore = officialText;
-                if (officialLink) {
-                    // Simple validation for URL format
+                if (officialLink && officialLinkDisplayText && officialText.includes(officialLinkDisplayText)) {
+                    // Validate URL format
                     const urlRegex = /^(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/[a-zA-Z0-9]+\.[^\s]{2,}|[a-zA-Z0-9]+\.[^\s]{2,})$/i;
+                    if (!urlRegex.test(officialLink)) {
+                        return showMessage("Por favor, ingresa una URL válida (ej: https://ejemplo.com).", true);
+                    }
+                    
+                    // Replace only the first occurrence of the display text with the link
+                    const linkedText = `<a href="${officialLink}" target="_blank" rel="noopener noreferrer">${officialLinkDisplayText}</a>`;
+                    messageToStore = officialText.replace(officialLinkDisplayText, linkedText);
+
+                } else if (officialLink && officialText) { // Fallback to old behavior if link display text is not provided or not found
+                     const urlRegex = /^(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/[a-zA-Z0-9]+\.[^\s]{2,}|[a-zA-Z0-9]+\.[^\s]{2,})$/i;
                     if (!urlRegex.test(officialLink)) {
                         return showMessage("Por favor, ingresa una URL válida (ej: https://ejemplo.com).", true);
                     }
                     messageToStore = `<a href="${officialLink}" target="_blank" rel="noopener noreferrer">${officialText}</a>`;
                 }
 
+
                 try {
+                    const messageData = {
+                        name: "Administrador SINTONIA",
+                        message: messageToStore,
+                        officialMessageText: officialText, // Store plain text for easier editing
+                        officialMessageLink: officialLink, // Store link for easier editing
+                        officialMessageLinkDisplayText: officialLinkDisplayText, // Store link display text
+                        timestamp: Date.now(),
+                        status: 'approved', 
+                        isOfficial: true,
+                        userId: userId
+                    };
+
                     // Check if there's an existing official message to update
                     if (currentOfficialMessageDocId) {
                         const officialMsgDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/messages`, currentOfficialMessageDocId);
-                        await updateDoc(officialMsgDocRef, {
-                            message: messageToStore,
-                            officialMessageText: officialText, // Store plain text for easier editing
-                            officialMessageLink: officialLink, // Store link for easier editing
-                            timestamp: Date.now() // Update timestamp to bring it to top
-                        });
+                        await updateDoc(officialMsgDocRef, messageData);
                         showMessage("Mensaje oficial actualizado.", false);
                     } else {
                         // Add new official message
-                        await addDoc(messagesCollectionRef, {
-                            name: "Administrador SINTONIA",
-                            message: messageToStore,
-                            officialMessageText: officialText,
-                            officialMessageLink: officialLink,
-                            timestamp: Date.now(),
-                            status: 'approved', 
-                            isOfficial: true,
-                            userId: userId
-                        });
+                        await addDoc(messagesCollectionRef, messageData);
                         showMessage("Mensaje oficial publicado.", false);
                     }
                     officialMessageTextInput.value = '';
                     officialMessageLinkInput.value = '';
+                    officialMessageLinkDisplayText.value = ''; // Clear new field
                     currentOfficialMessageDocId = null; // Reset after publishing
                 } catch (e) {
                     console.error("Error publishing official message:", e);
@@ -1236,11 +1252,13 @@
                     if (isAdmin && latestOfficialMessage) {
                         officialMessageTextInput.value = latestOfficialMessage.officialMessageText || '';
                         officialMessageLinkInput.value = latestOfficialMessage.officialMessageLink || '';
+                        officialMessageLinkDisplayText.value = latestOfficialMessage.officialMessageLinkDisplayText || ''; // Populate new field
                         currentOfficialMessageDocId = latestOfficialMessage.id; // Store ID for updating
                     } else if (isAdmin) {
                         // Clear fields if no official message exists
                         officialMessageTextInput.value = '';
                         officialMessageLinkInput.value = '';
+                        officialMessageLinkDisplayText.value = ''; // Clear new field
                         currentOfficialMessageDocId = null;
                     }
 
