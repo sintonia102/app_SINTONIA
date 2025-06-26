@@ -225,6 +225,19 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+
+        /* Styles for dislike button in messages */
+        .message-dislike-btn {
+            color: var(--text-color);
+            transition: color 0.2s;
+        }
+        .message-dislike-btn.disliked {
+            color: #3b82f6; /* Blue for disliked */
+        }
+        .message-dislike-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -415,7 +428,7 @@
         // Import necessary functions from Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, increment, arrayUnion, collection, addDoc, deleteDoc, query, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, increment, arrayUnion, arrayRemove, collection, addDoc, deleteDoc, query, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', async () => {
             // --- DOM Elements ---
@@ -1148,8 +1161,10 @@
                         status: status,
                         isOfficial: false,
                         userId: userId,
-                        likes: 0, // Initialize likes for new messages
-                        likedBy: [] // Initialize likedBy array
+                        likes: 0, 
+                        likedBy: [],
+                        dislikes: 0, // Initialize dislikes for new messages
+                        dislikedBy: [] // Initialize dislikedBy array
                     });
                     messageNameInput.value = '';
                     messageTextInput.value = '';
@@ -1206,8 +1221,10 @@
                         status: 'approved', 
                         isOfficial: true,
                         userId: userId,
-                        likes: 0, // Official messages also get likes
-                        likedBy: []
+                        likes: 0, 
+                        likedBy: [],
+                        dislikes: 0, // Official messages also get dislikes
+                        dislikedBy: []
                     };
 
                     // Check if there's an existing official message to update
@@ -1256,7 +1273,7 @@
                 }
             }
 
-            // New: Function to handle liking a message
+            // Function to handle liking a message
             async function handleMessageLike(messageId) {
                 if (!messagesCollectionRef || userId === 'anonymous') {
                     return showMessage("Debes iniciar sesión para dar 'Me Gusta'.", true);
@@ -1269,20 +1286,78 @@
                     if (docSnap.exists()) {
                         const messageData = docSnap.data();
                         const likedBy = messageData.likedBy || [];
+                        const dislikedBy = messageData.dislikedBy || [];
 
                         if (likedBy.includes(userId)) {
-                            return showMessage("Ya le diste 'Me Gusta' a este mensaje.", false);
-                        }
+                            // User already liked, so unlike it
+                            await updateDoc(msgDocRef, {
+                                likes: increment(-1),
+                                likedBy: arrayRemove(userId)
+                            });
+                            showMessage("Ya no te gusta este mensaje.", false);
+                        } else {
+                            // User wants to like
+                            let updates = {
+                                likes: increment(1),
+                                likedBy: arrayUnion(userId)
+                            };
 
-                        await updateDoc(msgDocRef, {
-                            likes: increment(1),
-                            likedBy: arrayUnion(userId) // Add current user's ID to likedBy array
-                        });
-                        showMessage("¡Gracias por tu Me Gusta!", false);
+                            if (dislikedBy.includes(userId)) {
+                                // If previously disliked, remove dislike
+                                updates.dislikes = increment(-1);
+                                updates.dislikedBy = arrayRemove(userId);
+                            }
+                            await updateDoc(msgDocRef, updates);
+                            showMessage("¡Gracias por tu Me Gusta!", false);
+                        }
                     }
                 } catch (e) {
                     console.error("Error liking message:", e);
                     showMessage("Error al dar 'Me Gusta' al mensaje.", true);
+                }
+            }
+
+            // New: Function to handle disliking a message
+            async function handleMessageDislike(messageId) {
+                if (!messagesCollectionRef || userId === 'anonymous') {
+                    return showMessage("Debes iniciar sesión para dar 'No me Gusta'.", true);
+                }
+
+                try {
+                    const msgDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/messages`, messageId);
+                    const docSnap = await getDoc(msgDocRef);
+
+                    if (docSnap.exists()) {
+                        const messageData = docSnap.data();
+                        const likedBy = messageData.likedBy || [];
+                        const dislikedBy = messageData.dislikedBy || [];
+
+                        if (dislikedBy.includes(userId)) {
+                            // User already disliked, so remove dislike
+                            await updateDoc(msgDocRef, {
+                                dislikes: increment(-1),
+                                dislikedBy: arrayRemove(userId)
+                            });
+                            showMessage("Ya no te disgusta este mensaje.", false);
+                        } else {
+                            // User wants to dislike
+                            let updates = {
+                                dislikes: increment(1),
+                                dislikedBy: arrayUnion(userId)
+                            };
+
+                            if (likedBy.includes(userId)) {
+                                // If previously liked, remove like
+                                updates.likes = increment(-1);
+                                updates.likedBy = arrayRemove(userId);
+                            }
+                            await updateDoc(msgDocRef, updates);
+                            showMessage("¡Mensaje marcado como 'No me Gusta'!", false);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error disliking message:", e);
+                    showMessage("Error al dar 'No me Gusta' al mensaje.", true);
                 }
             }
 
@@ -1327,9 +1402,17 @@
                             messageElement.classList.add('p-3', 'rounded-lg', 'card');
                             
                             const likesCount = msg.likes || 0;
+                            const dislikedCount = msg.dislikes || 0; // Get dislikes count
                             const hasLiked = (msg.likedBy || []).includes(userId);
+                            const hasDisliked = (msg.dislikedBy || []).includes(userId); // Check if user disliked
+
+                            // Determine button states
                             const likeButtonClass = `message-like-btn ${hasLiked ? 'liked' : ''}`;
-                            const likeButtonDisabled = hasLiked ? 'disabled' : '';
+                            const likeButtonDisabled = hasDisliked ? 'disabled' : ''; // Disable like if disliked
+
+                            const dislikeButtonClass = `message-dislike-btn ${hasDisliked ? 'disliked' : ''}`;
+                            const dislikeButtonDisabled = hasLiked ? 'disabled' : ''; // Disable dislike if liked
+
 
                             if (msg.isOfficial) {
                                 messageElement.classList.add('official-message');
@@ -1343,6 +1426,10 @@
                                             <i class="fas fa-heart"></i>
                                         </button>
                                         <span>${likesCount}</span>
+                                        <button class="${dislikeButtonClass}" data-id="${msg.id}" ${dislikeButtonDisabled}>
+                                            <i class="fas fa-thumbs-down"></i>
+                                        </button>
+                                        <span>${dislikedCount}</span>
                                         ${isAdmin ? `
                                         <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded-md delete-public-btn" data-id="${msg.id}">Eliminar</button>
                                         <button class="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 text-xs rounded-md hide-public-btn" data-id="${msg.id}">Ocultar</button>
@@ -1360,6 +1447,10 @@
                                             <i class="far fa-heart"></i>
                                         </button>
                                         <span>${likesCount}</span>
+                                        <button class="${dislikeButtonClass}" data-id="${msg.id}" ${dislikeButtonDisabled}>
+                                            <i class="far fa-thumbs-down"></i>
+                                        </button>
+                                        <span>${dislikedCount}</span>
                                         ${isAdmin ? `
                                         <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded-md delete-public-btn" data-id="${msg.id}">Eliminar</button>
                                         <button class="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 text-xs rounded-md hide-public-btn" data-id="${msg.id}">Ocultar</button>
@@ -1383,6 +1474,10 @@
                         // Add event listeners for message like buttons
                         publicMessagesList.querySelectorAll('.message-like-btn').forEach(button => {
                             button.addEventListener('click', (e) => handleMessageLike(e.currentTarget.dataset.id));
+                        });
+                        // Add event listeners for message dislike buttons
+                        publicMessagesList.querySelectorAll('.message-dislike-btn').forEach(button => {
+                            button.addEventListener('click', (e) => handleMessageDislike(e.currentTarget.dataset.id));
                         });
                     }
 
