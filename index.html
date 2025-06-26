@@ -29,7 +29,7 @@
             --text-color: var(--text-light);
             --card-color: var(--card-light);
             --primary-color: var(--primary-light);
-            --shadow-color: var(--shadow-light);
+            --shadow-color: var(--shadow-color);
         }
 
         /* Styles for dark theme */
@@ -360,10 +360,15 @@
                     <button id="save-prohibited-words-btn" class="btn-primary px-3 py-1 text-sm rounded-md mt-2">Guardar</button>
                 </div>
 
-                <!-- Official Message Input -->
+                <!-- Official Message Input (Updated to separate text and link) -->
                 <div>
-                    <label for="official-message-input" class="block text-sm font-medium mb-1">Mensaje Oficial:</label>
-                    <textarea id="official-message-input" rows="2" placeholder="Escribe tu mensaje oficial aquí... Puedes usar HTML para enlaces (ej: <a href='https://ejemplo.com'>Visita nuestra web</a>)" class="w-full p-2 rounded bg-transparent border border-[var(--shadow-color)] text-sm"></textarea>
+                    <label for="official-message-text-input" class="block text-sm font-medium mb-1">Texto del Mensaje Oficial:</label>
+                    <textarea id="official-message-text-input" rows="2" placeholder="Escribe el texto visible del mensaje oficial aquí..." class="w-full p-2 rounded bg-transparent border border-[var(--shadow-color)] text-sm"></textarea>
+                </div>
+                <div>
+                    <label for="official-message-link-input" class="block text-sm font-medium mb-1">URL del Enlace (opcional):</label>
+                    <input type="url" id="official-message-link-input" placeholder="https://ejemplo.com" class="w-full p-2 rounded bg-transparent border border-[var(--shadow-color)] text-sm">
+                    <p class="text-xs text-gray-500 mt-1">Deja vacío si no quieres un enlace.</p>
                     <button id="publish-official-message-btn" class="btn-primary px-3 py-1 text-sm rounded-md mt-2">Publicar Mensaje Oficial</button>
                 </div>
 
@@ -426,7 +431,9 @@
             const autoPublishToggle = document.getElementById('auto-publish-toggle');
             const prohibitedWordsInput = document.getElementById('prohibited-words-input');
             const saveProhibitedWordsBtn = document.getElementById('save-prohibited-words-btn');
-            const officialMessageInput = document.getElementById('official-message-input');
+            // Updated DOM elements for official message input
+            const officialMessageTextInput = document.getElementById('official-message-text-input');
+            const officialMessageLinkInput = document.getElementById('official-message-link-input');
             const publishOfficialMessageBtn = document.getElementById('publish-official-message-btn');
             const messageNameInput = document.getElementById('message-name-input');
             const messageTextInput = document.getElementById('message-text-input');
@@ -465,6 +472,7 @@
             let messagesCollectionRef = null;
             let adminUserDocRef = null; 
             let isAdmin = false;
+            let currentOfficialMessageDocId = null; // To store the ID of the current official message for editing
 
             // Function to display messages (notifications)
             function showMessage(text, isError = false, duration = 3000) {
@@ -1033,7 +1041,6 @@
                     const docSnap = await getDoc(adminUserDocRef);
                     if (docSnap.exists()) {
                         const adminConfig = docSnap.data();
-                        // Expect an array of Google UIDs in 'adminGoogleUids'
                         const adminGoogleUids = adminConfig.adminGoogleUids || []; 
                         isAdmin = adminGoogleUids.includes(userId); 
                     } else {
@@ -1134,22 +1141,51 @@
 
             async function handlePublishOfficialMessage() {
                 if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
-                const message = officialMessageInput.value.trim();
-                if (!message) {
-                    return showMessage("Por favor, ingresa un mensaje oficial.", true);
+                const officialText = officialMessageTextInput.value.trim();
+                const officialLink = officialMessageLinkInput.value.trim();
+
+                if (!officialText) {
+                    return showMessage("Por favor, ingresa el texto del mensaje oficial.", true);
+                }
+
+                let messageToStore = officialText;
+                if (officialLink) {
+                    // Simple validation for URL format
+                    const urlRegex = /^(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/[a-zA-Z0-9]+\.[^\s]{2,}|[a-zA-Z0-9]+\.[^\s]{2,})$/i;
+                    if (!urlRegex.test(officialLink)) {
+                        return showMessage("Por favor, ingresa una URL válida (ej: https://ejemplo.com).", true);
+                    }
+                    messageToStore = `<a href="${officialLink}" target="_blank" rel="noopener noreferrer">${officialText}</a>`;
                 }
 
                 try {
-                    await addDoc(messagesCollectionRef, {
-                        name: "Administrador SINTONIA",
-                        message: message,
-                        timestamp: Date.now(),
-                        status: 'approved', 
-                        isOfficial: true,
-                        userId: userId
-                    });
-                    officialMessageInput.value = '';
-                    showMessage("Mensaje oficial publicado.", false);
+                    // Check if there's an existing official message to update
+                    if (currentOfficialMessageDocId) {
+                        const officialMsgDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/messages`, currentOfficialMessageDocId);
+                        await updateDoc(officialMsgDocRef, {
+                            message: messageToStore,
+                            officialMessageText: officialText, // Store plain text for easier editing
+                            officialMessageLink: officialLink, // Store link for easier editing
+                            timestamp: Date.now() // Update timestamp to bring it to top
+                        });
+                        showMessage("Mensaje oficial actualizado.", false);
+                    } else {
+                        // Add new official message
+                        await addDoc(messagesCollectionRef, {
+                            name: "Administrador SINTONIA",
+                            message: messageToStore,
+                            officialMessageText: officialText,
+                            officialMessageLink: officialLink,
+                            timestamp: Date.now(),
+                            status: 'approved', 
+                            isOfficial: true,
+                            userId: userId
+                        });
+                        showMessage("Mensaje oficial publicado.", false);
+                    }
+                    officialMessageTextInput.value = '';
+                    officialMessageLinkInput.value = '';
+                    currentOfficialMessageDocId = null; // Reset after publishing
                 } catch (e) {
                     console.error("Error publishing official message:", e);
                     showMessage("Error al publicar mensaje oficial.", true);
@@ -1195,6 +1231,20 @@
 
                     allMessages.sort((a, b) => b.timestamp - a.timestamp);
 
+                    // Find the most recent official message to populate admin panel
+                    const latestOfficialMessage = allMessages.find(msg => msg.isOfficial);
+                    if (isAdmin && latestOfficialMessage) {
+                        officialMessageTextInput.value = latestOfficialMessage.officialMessageText || '';
+                        officialMessageLinkInput.value = latestOfficialMessage.officialMessageLink || '';
+                        currentOfficialMessageDocId = latestOfficialMessage.id; // Store ID for updating
+                    } else if (isAdmin) {
+                        // Clear fields if no official message exists
+                        officialMessageTextInput.value = '';
+                        officialMessageLinkInput.value = '';
+                        currentOfficialMessageDocId = null;
+                    }
+
+
                     // Filter for public (approved) messages
                     const publicMessages = allMessages.filter(msg => msg.status === 'approved');
                     publicMessagesList.innerHTML = ''; 
@@ -1207,7 +1257,6 @@
                             if (msg.isOfficial) {
                                 messageElement.classList.add('official-message');
                                 // For official messages, use innerHTML to render HTML content (e.g., links)
-                                // This is safe because only admins can post official messages.
                                 messageElement.innerHTML = `
                                     <p class="font-bold">${msg.name}</p>
                                     <p class="text-sm mt-1">${msg.message}</p>
@@ -1232,7 +1281,6 @@
                                     </div>
                                     ` : ''}
                                 `;
-                                // Set message content using textContent for safety
                                 messageElement.querySelector('p:nth-child(2)').textContent = msg.message;
                             }
                             publicMessagesList.appendChild(messageElement);
