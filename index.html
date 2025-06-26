@@ -363,7 +363,7 @@
                 <!-- Official Message Input -->
                 <div>
                     <label for="official-message-input" class="block text-sm font-medium mb-1">Mensaje Oficial:</label>
-                    <textarea id="official-message-input" rows="2" placeholder="Escribe tu mensaje oficial aquí..." class="w-full p-2 rounded bg-transparent border border-[var(--shadow-color)] text-sm"></textarea>
+                    <textarea id="official-message-input" rows="2" placeholder="Escribe tu mensaje oficial aquí... Puedes usar HTML para enlaces (ej: <a href='https://ejemplo.com'>Visita nuestra web</a>)" class="w-full p-2 rounded bg-transparent border border-[var(--shadow-color)] text-sm"></textarea>
                     <button id="publish-official-message-btn" class="btn-primary px-3 py-1 text-sm rounded-md mt-2">Publicar Mensaje Oficial</button>
                 </div>
 
@@ -1206,18 +1206,35 @@
                             messageElement.classList.add('p-3', 'rounded-lg', 'card');
                             if (msg.isOfficial) {
                                 messageElement.classList.add('official-message');
+                                // For official messages, use innerHTML to render HTML content (e.g., links)
+                                // This is safe because only admins can post official messages.
+                                messageElement.innerHTML = `
+                                    <p class="font-bold">${msg.name}</p>
+                                    <p class="text-sm mt-1">${msg.message}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${new Date(msg.timestamp).toLocaleString()}</p>
+                                    ${isAdmin ? `
+                                    <div class="mt-2 space-x-2">
+                                        <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded-md delete-public-btn" data-id="${msg.id}">Eliminar</button>
+                                        <button class="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 text-xs rounded-md hide-public-btn" data-id="${msg.id}">Ocultar</button>
+                                    </div>
+                                    ` : ''}
+                                `;
+                            } else {
+                                // For regular user messages, use textContent to prevent XSS attacks
+                                messageElement.innerHTML = `
+                                    <p class="font-bold">${msg.name}</p>
+                                    <p class="text-sm mt-1"></p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${new Date(msg.timestamp).toLocaleString()}</p>
+                                    ${isAdmin ? `
+                                    <div class="mt-2 space-x-2">
+                                        <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded-md delete-public-btn" data-id="${msg.id}">Eliminar</button>
+                                        <button class="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 text-xs rounded-md hide-public-btn" data-id="${msg.id}">Ocultar</button>
+                                    </div>
+                                    ` : ''}
+                                `;
+                                // Set message content using textContent for safety
+                                messageElement.querySelector('p:nth-child(2)').textContent = msg.message;
                             }
-                            messageElement.innerHTML = `
-                                <p class="font-bold">${msg.name}</p>
-                                <p class="text-sm mt-1">${msg.message}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${new Date(msg.timestamp).toLocaleString()}</p>
-                                ${isAdmin ? `
-                                <div class="mt-2 space-x-2">
-                                    <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded-md delete-public-btn" data-id="${msg.id}">Eliminar</button>
-                                    <button class="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 text-xs rounded-md hide-public-btn" data-id="${msg.id}">Ocultar</button>
-                                </div>
-                                ` : ''}
-                            `;
                             publicMessagesList.appendChild(messageElement);
                         });
 
