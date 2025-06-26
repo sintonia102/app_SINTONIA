@@ -438,7 +438,7 @@
             // Updated DOM elements for official message input
             const officialMessageTextInput = document.getElementById('official-message-text-input');
             const officialMessageLinkInput = document.getElementById('official-message-link-input');
-            const officialMessageLinkDisplayText = document.getElementById('official-message-link-display-text-input'); // New DOM element
+            const officialMessageLinkDisplayText = document.getElementById('official-message-link-display-text-input'); 
             const publishOfficialMessageBtn = document.getElementById('publish-official-message-btn');
             const messageNameInput = document.getElementById('message-name-input');
             const messageTextInput = document.getElementById('message-text-input');
@@ -1147,11 +1147,16 @@
             async function handlePublishOfficialMessage() {
                 if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
                 const officialText = officialMessageTextInput.value.trim();
-                const officialLink = officialMessageLinkInput.value.trim();
-                const officialLinkDisplayText = officialMessageLinkDisplayText.value.trim(); // Get new field value
+                let officialLink = officialMessageLinkInput.value.trim(); // Use let because we might modify it
+                const officialLinkDisplayText = officialMessageLinkDisplayText.value.trim();
 
                 if (!officialText) {
                     return showMessage("Por favor, ingresa el texto del mensaje oficial.", true);
+                }
+
+                // Prepend https:// if missing for absolute URL
+                if (officialLink && !/^https?:\/\//i.test(officialLink)) {
+                    officialLink = `https://${officialLink}`;
                 }
 
                 let messageToStore = officialText;
@@ -1252,13 +1257,13 @@
                     if (isAdmin && latestOfficialMessage) {
                         officialMessageTextInput.value = latestOfficialMessage.officialMessageText || '';
                         officialMessageLinkInput.value = latestOfficialMessage.officialMessageLink || '';
-                        officialMessageLinkDisplayText.value = latestOfficialMessage.officialMessageLinkDisplayText || ''; // Populate new field
-                        currentOfficialMessageDocId = latestOfficialMessage.id; // Store ID for updating
+                        officialMessageLinkDisplayText.value = latestOfficialMessage.officialMessageLinkDisplayText || ''; 
+                        currentOfficialMessageDocId = latestOfficialMessage.id; 
                     } else if (isAdmin) {
                         // Clear fields if no official message exists
                         officialMessageTextInput.value = '';
                         officialMessageLinkInput.value = '';
-                        officialMessageLinkDisplayText.value = ''; // Clear new field
+                        officialMessageLinkDisplayText.value = ''; 
                         currentOfficialMessageDocId = null;
                     }
 
