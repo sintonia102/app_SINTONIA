@@ -212,6 +212,19 @@
             padding: 0.5rem; 
             border-radius: 9999px; 
         }
+
+        /* Styles for like button in messages */
+        .message-like-btn {
+            color: var(--text-color);
+            transition: color 0.2s;
+        }
+        .message-like-btn.liked {
+            color: #ef4444; /* Red for liked */
+        }
+        .message-like-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -402,7 +415,7 @@
         // Import necessary functions from Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, increment, collection, addDoc, deleteDoc, query, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, increment, arrayUnion, collection, addDoc, deleteDoc, query, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', async () => {
             // --- DOM Elements ---
@@ -1134,7 +1147,9 @@
                         timestamp: Date.now(),
                         status: status,
                         isOfficial: false,
-                        userId: userId 
+                        userId: userId,
+                        likes: 0, // Initialize likes for new messages
+                        likedBy: [] // Initialize likedBy array
                     });
                     messageNameInput.value = '';
                     messageTextInput.value = '';
@@ -1147,7 +1162,7 @@
             async function handlePublishOfficialMessage() {
                 if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
                 const officialText = officialMessageTextInput.value.trim();
-                let officialLink = officialMessageLinkInput.value.trim(); // Use let because we might modify it
+                let officialLink = officialMessageLinkInput.value.trim(); 
                 const officialLinkDisplayText = officialMessageLinkDisplayText.value.trim();
 
                 if (!officialText) {
@@ -1171,7 +1186,7 @@
                     const linkedText = `<a href="${officialLink}" target="_blank" rel="noopener noreferrer">${officialLinkDisplayText}</a>`;
                     messageToStore = officialText.replace(officialLinkDisplayText, linkedText);
 
-                } else if (officialLink && officialText) { // Fallback to old behavior if link display text is not provided or not found
+                } else if (officialLink && officialText) { 
                      const urlRegex = /^(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/[a-zA-Z0-9]+\.[^\s]{2,}|[a-zA-Z0-9]+\.[^\s]{2,})$/i;
                     if (!urlRegex.test(officialLink)) {
                         return showMessage("Por favor, ingresa una URL válida (ej: https://ejemplo.com).", true);
@@ -1184,13 +1199,15 @@
                     const messageData = {
                         name: "Administrador SINTONIA",
                         message: messageToStore,
-                        officialMessageText: officialText, // Store plain text for easier editing
-                        officialMessageLink: officialLink, // Store link for easier editing
-                        officialMessageLinkDisplayText: officialLinkDisplayText, // Store link display text
+                        officialMessageText: officialText, 
+                        officialMessageLink: officialLink, 
+                        officialMessageLinkDisplayText: officialLinkDisplayText, 
                         timestamp: Date.now(),
                         status: 'approved', 
                         isOfficial: true,
-                        userId: userId
+                        userId: userId,
+                        likes: 0, // Official messages also get likes
+                        likedBy: []
                     };
 
                     // Check if there's an existing official message to update
@@ -1205,15 +1222,15 @@
                     }
                     officialMessageTextInput.value = '';
                     officialMessageLinkInput.value = '';
-                    officialMessageLinkDisplayText.value = ''; // Clear new field
-                    currentOfficialMessageDocId = null; // Reset after publishing
+                    officialMessageLinkDisplayText.value = ''; 
+                    currentOfficialMessageDocId = null; 
                 } catch (e) {
                     console.error("Error publishing official message:", e);
                     showMessage("Error al publicar mensaje oficial.", true);
                 }
             }
 
-            // New: Function to update message status (approve/hide/unhide)
+            // Function to update message status (approve/hide/unhide)
             async function updateMessageStatus(messageId, newStatus) {
                 if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
                 try {
@@ -1226,7 +1243,7 @@
                 }
             }
 
-            // Existing: Function to delete a message permanently
+            // Function to delete a message permanently
             async function deleteMessage(messageId) {
                 if (!isAdmin || !messagesCollectionRef) return showMessage("Acceso denegado.", true);
                 try {
@@ -1238,6 +1255,37 @@
                     showMessage("Error al eliminar mensaje.", true);
                 }
             }
+
+            // New: Function to handle liking a message
+            async function handleMessageLike(messageId) {
+                if (!messagesCollectionRef || userId === 'anonymous') {
+                    return showMessage("Debes iniciar sesión para dar 'Me Gusta'.", true);
+                }
+
+                try {
+                    const msgDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/messages`, messageId);
+                    const docSnap = await getDoc(msgDocRef);
+
+                    if (docSnap.exists()) {
+                        const messageData = docSnap.data();
+                        const likedBy = messageData.likedBy || [];
+
+                        if (likedBy.includes(userId)) {
+                            return showMessage("Ya le diste 'Me Gusta' a este mensaje.", false);
+                        }
+
+                        await updateDoc(msgDocRef, {
+                            likes: increment(1),
+                            likedBy: arrayUnion(userId) // Add current user's ID to likedBy array
+                        });
+                        showMessage("¡Gracias por tu Me Gusta!", false);
+                    }
+                } catch (e) {
+                    console.error("Error liking message:", e);
+                    showMessage("Error al dar 'Me Gusta' al mensaje.", true);
+                }
+            }
+
 
             function loadMessages() {
                 if (!messagesCollectionRef) return;
@@ -1277,6 +1325,12 @@
                         publicMessages.forEach((msg) => {
                             const messageElement = document.createElement('div');
                             messageElement.classList.add('p-3', 'rounded-lg', 'card');
+                            
+                            const likesCount = msg.likes || 0;
+                            const hasLiked = (msg.likedBy || []).includes(userId);
+                            const likeButtonClass = `message-like-btn ${hasLiked ? 'liked' : ''}`;
+                            const likeButtonDisabled = hasLiked ? 'disabled' : '';
+
                             if (msg.isOfficial) {
                                 messageElement.classList.add('official-message');
                                 // For official messages, use innerHTML to render HTML content (e.g., links)
@@ -1284,12 +1338,16 @@
                                     <p class="font-bold">${msg.name}</p>
                                     <p class="text-sm mt-1">${msg.message}</p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${new Date(msg.timestamp).toLocaleString()}</p>
-                                    ${isAdmin ? `
-                                    <div class="mt-2 space-x-2">
+                                    <div class="flex items-center mt-2 space-x-2">
+                                        <button class="${likeButtonClass}" data-id="${msg.id}" ${likeButtonDisabled}>
+                                            <i class="fas fa-heart"></i>
+                                        </button>
+                                        <span>${likesCount}</span>
+                                        ${isAdmin ? `
                                         <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded-md delete-public-btn" data-id="${msg.id}">Eliminar</button>
                                         <button class="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 text-xs rounded-md hide-public-btn" data-id="${msg.id}">Ocultar</button>
+                                        ` : ''}
                                     </div>
-                                    ` : ''}
                                 `;
                             } else {
                                 // For regular user messages, use textContent to prevent XSS attacks
@@ -1297,12 +1355,16 @@
                                     <p class="font-bold">${msg.name}</p>
                                     <p class="text-sm mt-1"></p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${new Date(msg.timestamp).toLocaleString()}</p>
-                                    ${isAdmin ? `
-                                    <div class="mt-2 space-x-2">
+                                    <div class="flex items-center mt-2 space-x-2">
+                                        <button class="${likeButtonClass}" data-id="${msg.id}" ${likeButtonDisabled}>
+                                            <i class="far fa-heart"></i>
+                                        </button>
+                                        <span>${likesCount}</span>
+                                        ${isAdmin ? `
                                         <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded-md delete-public-btn" data-id="${msg.id}">Eliminar</button>
                                         <button class="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 text-xs rounded-md hide-public-btn" data-id="${msg.id}">Ocultar</button>
+                                        ` : ''}
                                     </div>
-                                    ` : ''}
                                 `;
                                 messageElement.querySelector('p:nth-child(2)').textContent = msg.message;
                             }
@@ -1318,6 +1380,10 @@
                                 button.addEventListener('click', (e) => updateMessageStatus(e.target.dataset.id, 'hidden'));
                             });
                         }
+                        // Add event listeners for message like buttons
+                        publicMessagesList.querySelectorAll('.message-like-btn').forEach(button => {
+                            button.addEventListener('click', (e) => handleMessageLike(e.currentTarget.dataset.id));
+                        });
                     }
 
                     // Admin-specific: Filter for pending and hidden messages
