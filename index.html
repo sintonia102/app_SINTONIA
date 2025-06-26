@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* Variables CSS para temas claro y oscuro */
+        /* CSS Variables for light and dark themes */
         :root {
             --bg-light: #f0f2f5;
             --text-light: #1c1e21;
@@ -23,7 +23,7 @@
             --shadow-dark: rgba(255, 255, 255, 0.1);
         }
         
-        /* Estilos para el tema claro */
+        /* Styles for light theme */
         html.light {
             --bg-color: var(--bg-light);
             --text-color: var(--text-light);
@@ -32,7 +32,7 @@
             --shadow-color: var(--shadow-light);
         }
 
-        /* Estilos para el tema oscuro */
+        /* Styles for dark theme */
         html.dark {
             --bg-color: var(--bg-dark);
             --text-color: var(--text-dark);
@@ -41,7 +41,7 @@
             --shadow-color: var(--shadow-dark);
         }
 
-        /* Estilos generales del cuerpo */
+        /* General body styles */
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-color);
@@ -49,14 +49,14 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
-        /* Estilos para las tarjetas (elementos con sombra y fondo) */
+        /* Styles for cards (elements with shadow and background) */
         .card {
             background-color: var(--card-color);
             box-shadow: 0 4px 12px var(--shadow-color);
             transition: background-color 0.3s;
         }
 
-        /* Estilos para botones de ícono */
+        /* Styles for icon buttons */
         .btn-icon {
             background-color: transparent;
             color: var(--text-color);
@@ -64,35 +64,34 @@
             transition: all 0.2s ease-in-out;
         }
 
-        /* Efecto hover para botones de ícono */
+        /* Hover effect for icon buttons */
         .btn-icon:hover {
             color: var(--primary-color);
             transform: scale(1.1);
         }
         
-        /* Estilo activo para botones de ícono */
+        /* Active style for icon buttons */
         .btn-icon.active {
             color: var(--primary-color);
         }
 
-        /* Estilos para botones primarios */
+        /* Styles for primary buttons */
         .btn-primary {
             background-color: var(--primary-color);
             color: white;
             transition: background-color 0.3s;
         }
-        /* Efecto hover para botones primarios */
+        /* Hover effect for primary buttons */
         .btn-primary:hover {
             opacity: 0.9;
         }
 
-        /* Estilos para el visualizador de audio (canvas) */
+        /* Styles for audio visualizer (canvas) */
         #player-display {
-            position: relative; /* Necesario para el posicionamiento absoluto de los hijos */
+            position: relative; /* Required for absolute positioning of children */
             width: 100%;
-            /* Mueve aspect-ratio y background-color aquí para que el contenedor siempre tenga altura */
             aspect-ratio: 16 / 9; 
-            background-color: #000; /* Fondo para cuando ni canvas ni video están llenando */
+            background-color: #000; /* Background for when neither canvas nor video are filling */
             border-radius: 0.5rem;
             overflow: hidden;
         }
@@ -100,40 +99,37 @@
         #visualizer {
             width: 100%;
             height: 100%;
-            /* Elimina aspect-ratio y background-color de aquí */
-            /* Ahora el canvas simplemente llena el 100% del padre */
         }
 
-        /* Estilos para el contenedor de video (AJUSTADO PARA NUEVA POSICIÓN) */
-        /* Estas clases se aplicarán al videoContainer cuando se cree dinámicamente */
+        /* Styles for video container (ADJUSTED FOR NEW POSITION) */
+        /* These classes will be applied to videoContainer when dynamically created */
         .video-container-dynamic {
-            position: absolute; /* Para que se superponga al visualizer */
+            position: absolute; /* To overlap the visualizer */
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            /* No es necesario aspect-ratio aquí si el padre ya lo tiene y este lo llena */
         }
         
-        /* Estilos para el iframe de video */
+        /* Styles for video iframe */
         .video-container-dynamic iframe {
             width: 100%;
             height: 100%;
             border-radius: 0.5rem;
         }
 
-        /* Animación de desvanecimiento para las efemérides */
+        /* Fade animation for ephemerides */
         .efemeride-fade {
-            animation: fadeInOut 8s infinite; /* Mantener la animación para la transición al cargar la frase */
+            animation: fadeInOut 8s infinite; /* Keep animation for transition when phrase loads */
         }
 
-        /* Keyframes para la animación de desvanecimiento */
+        /* Keyframes for fade animation */
         @keyframes fadeInOut {
             0%, 100% { opacity: 0; }
             15%, 85% { opacity: 1; }
         }
 
-        /* Estilos para el interruptor de tema (toggle switch) */
+        /* Styles for theme toggle switch */
         .switch {
             position: relative;
             display: inline-block;
@@ -174,12 +170,12 @@
             transform: translateX(26px);
         }
 
-        /* Estilos para la caja de mensajes */
+        /* Styles for message box */
         .message-box {
             position: fixed;
             bottom: 1rem;
             right: 1rem;
-            background-color: #4CAF50; /* Color de éxito */
+            background-color: #4CAF50; /* Success color */
             color: white;
             padding: 0.75rem 1.25rem;
             border-radius: 0.5rem;
@@ -196,16 +192,7 @@
         }
 
         .message-box.error {
-            background-color: #f44336; /* Color de error */
-        }
-
-        /* Estilos para la sección de administración */
-        #admin-efemerides-section {
-            background-color: var(--card-color);
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            margin-top: 1.5rem;
-            box-shadow: 0 4px 12px var(--shadow-color);
+            background-color: #f44336; /* Error color */
         }
     </style>
 </head>
@@ -215,7 +202,7 @@
         
         <main class="card w-full max-w-lg rounded-xl p-4 sm:p-6 space-y-4">
             
-            <!-- Encabezado de la aplicación -->
+            <!-- Application Header -->
             <header class="flex justify-between items-center">
                 <h1 class="text-3xl font-bold" style="color: var(--primary-color);">SINTONIA</h1>
                 <div class="flex items-center space-x-2">
@@ -228,27 +215,27 @@
                 </div>
             </header>
 
-            <!-- Pantalla del reproductor (vúmetro o video) -->
+            <!-- Player Screen (VU meter or video) -->
             <div id="player-display" class="relative w-full rounded-lg overflow-hidden">
                 <canvas id="visualizer"></canvas>
             </div>
             
-            <!-- Zócalo de Frases Motivacionales (cambio diario) -->
+            <!-- Motivational Phrases Footer (daily change) -->
             <div id="motivational-phrase-container" class="mt-4 p-3 rounded-lg text-center flex flex-col items-center justify-center" style="background: linear-gradient(45deg, var(--primary-color), #4a00e0);">
                 <div id="motivational-phrase-content" class="text-white font-semibold text-sm">
-                    <!-- La frase motivacional se inyectará aquí -->
+                    <!-- Motivational phrase will be injected here -->
                 </div>
             </div>
 
-            <!-- Etiqueta de la estación actual -->
+            <!-- Current Station Label -->
             <div id="station-display-container" class="text-center -mt-2">
                  <p id="current-station-label" class="text-sm font-semibold opacity-80"></p>
             </div>
 
-            <!-- Elemento de audio (oculto) -->
+            <!-- Audio element (hidden) -->
             <audio id="radio-player" crossorigin="anonymous"></audio>
 
-            <!-- Controles de la radio -->
+            <!-- Radio Controls -->
             <div class="flex flex-col space-y-4" id="radio-controls">
                 <div class="flex items-center justify-center space-x-4">
                     <button id="play-pause-btn" class="text-4xl w-16 h-16 flex items-center justify-center rounded-full btn-primary shadow-lg">
@@ -262,7 +249,7 @@
                 </div>
             </div>
             
-            <!-- Íconos de acción -->
+            <!-- Action Icons -->
             <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 text-center text-xs">
                  <div class="flex flex-col items-center">
                     <button id="change-source-btn" class="btn-icon text-2xl"><i class="fa-solid fa-music"></i></button>
@@ -292,15 +279,15 @@
                 </div>
             </div>
 
-            <!-- Nuevo contenedor para las Efemérides (debajo de los iconos) -->
+            <!-- New container for Ephemerides (below icons) -->
             <div id="daily-efemerides-display" class="mt-4 space-y-2">
-                <!-- Las efemérides del día con sus colores se inyectarán aquí -->
+                <!-- Daily ephemerides with their colors will be injected here -->
                 <p class="text-center text-gray-500 text-sm">Cargando efemérides del día...</p>
             </div>
 
-            <!-- Programadores (schedulers) -->
+            <!-- Schedulers -->
             <div class="space-y-4 pt-4 border-t border-[var(--shadow-color)]">
-                <!-- Programador de inicio -->
+                <!-- Start scheduler -->
                 <div class="flex items-center justify-between">
                      <div class="flex items-center space-x-2">
                         <i class="far fa-clock"></i>
@@ -308,7 +295,7 @@
                     </div>
                     <button id="set-start-btn" class="btn-primary px-3 py-1 text-sm rounded-md">Programar</button>
                 </div>
-                 <!-- Programador de parada -->
+                 <!-- Stop scheduler -->
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-2">
                         <i class="fas fa-stopwatch"></i>
@@ -318,28 +305,20 @@
                 </div>
             </div>
             
-             <!-- Caja de mensajes (para notificaciones) -->
+             <!-- Message box (for notifications) -->
              <div id="message-box" class="message-box hidden"></div>
-
-            <!-- Sección de Administración/Carga de Efemérides (oculta por defecto) -->
-            <div id="admin-efemerides-section" class="hidden mt-8 w-full">
-                <h2 class="text-xl font-bold mb-4" style="color: var(--primary-color);">Herramienta de Carga de Efemérides</h2>
-                <textarea id="efemerides-json-input" class="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 text-sm h-64 border border-gray-300 dark:border-gray-600" placeholder="Pega aquí tu JSON de efemérides (ej. { '01-01': [{...}], '01-02': [{...}] })"></textarea>
-                <button id="upload-efemerides-btn" class="btn-primary px-4 py-2 mt-4 rounded-md w-full">Cargar Efemérides a Firestore</button>
-                <p class="text-sm text-gray-500 mt-2">Usa `document.getElementById('admin-efemerides-section').classList.remove('hidden')` en la consola para mostrar esta sección.</p>
-            </div>
 
         </main>
     </div>
 
     <script type="module">
-        // Importa las funciones necesarias de Firebase SDKs
+        // Import necessary functions from Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // --- Elementos del DOM (Declarados al inicio para evitar ReferenceError) ---
+            // --- DOM Elements (Declared at the beginning to avoid ReferenceError) ---
             const radioPlayer = document.getElementById('radio-player');
             const playPauseBtn = document.getElementById('play-pause-btn');
             const volumeSlider = document.getElementById('volume-slider');
@@ -362,16 +341,12 @@
             const stopTimeInput = document.getElementById('stop-time-input');
             const setStopBtn = document.getElementById('set-stop-btn');
 
-            // Elementos para el zócalo de frases motivacionales
+            // Elements for motivational phrases footer
             const motivationalPhraseContentDiv = document.getElementById('motivational-phrase-content');
-            // Elementos para el zócalo de efemérides
+            // Elements for daily ephemerides footer
             const dailyEfeméridesDisplay = document.getElementById('daily-efemerides-display');
-            // Elementos para la herramienta de carga
-            const efemeridesJsonInput = document.getElementById('efemerides-json-input');
-            const uploadEfeméridesBtn = document.getElementById('upload-efemerides-btn');
-
-
-            // --- Configuración de Firebase ---
+            
+            // --- Firebase Configuration ---
             const firebaseConfig = {
                 apiKey: "AIzaSyDomYzzPU9zxP9KdMGKvOrrNlwt0RLVE7Y",
                 authDomain: "appsintonia-66989.firebaseapp.com",
@@ -387,20 +362,20 @@
             let userId = 'anonymous'; 
             let globalLikeDocRef = null; 
 
-            // Función para mostrar mensajes
+            // Function to display messages
             function showMessage(text, isError = false, duration = 3000) {
                 messageBox.textContent = text;
                 messageBox.classList.remove('hidden', 'show', 'error');
                 if (isError) {
                     messageBox.classList.add('error');
                 }
-                // Forzar un reflow para asegurar que la transición se reproduzca
+                // Force a reflow to ensure the transition plays
                 void messageBox.offsetWidth; 
                 messageBox.classList.add('show');
 
                 setTimeout(() => {
                     messageBox.classList.remove('show');
-                    // Ocultar completamente después de la transición
+                    // Hide completely after transition
                     setTimeout(() => messageBox.classList.add('hidden'), 300); 
                 }, duration);
             }
@@ -424,7 +399,7 @@
                         console.log("Firebase Auth Ready. User ID:", userId);
                         globalLikeDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/radioLikes/globalLikeCount`);
                         setupLikesListener();
-                        loadDailyEfemérides(); // Cargar efemérides al iniciar y autenticar
+                        loadDailyEfemérides(); // Load ephemerides on start and authentication
                     } else {
                         console.log("No user is signed in.");
                         userId = 'anonymous';
@@ -436,14 +411,14 @@
                 showMessage("Error al iniciar la base de datos (Firebase). Algunas funciones pueden no estar disponibles. Por favor, verifica tu configuración de Firebase en el código y las reglas de seguridad.", true, 10000);
             }
 
-            // --- Cadenas de audio ---
+            // --- Audio Streams ---
             const streams = [
                 { name: "SINTONIA", url: "https://stream.radioservice.org/8046/stream" },
                 { name: "ZENO FM", url: "https://stream.zeno.fm/40x1zezb7nhvv" }
             ];
             let currentStreamIndex = 0;
 
-            // --- Configuración del Vúmetro (Visualizador) ---
+            // --- VU Meter (Visualizer) Configuration ---
             let audioCtx;
             let analyser;
             let source;
@@ -453,26 +428,26 @@
             const totalVumeterEffects = 10;
             let animationFrameId;
 
-            // --- Frases Motivacionales ---
+            // --- Motivational Phrases ---
             const motivationalPhrases = [
-                "Cree que puedes y ya estás a medio camino.", "El mejor momento para plantar un árbol fue hace 20 años. El segundo mejor momento es ahora.", "Tu actitud, no tu aptitud, determinará tu altitud.", "El éxito es la suma de pequeños esfuerzos repetidos día tras día.", "La única forma de hacer un gran trabajo es amar lo que haces.", "Cada mañana nacemos de nuevo. Lo que hacemos hoy es lo que más importa.", "No cuentes los días, haz que los días cuenten.", "La felicidad no es algo hecho. Proviene de tus propias acciones.", "El futuro pertenece a quienes creen en la belleza de sus sueños.", "Un día brillante depende más de tu actitud que del sol.", "No te preocupes por los fracasos, preocúpate por las oportunidades que pierdes cuando ni siquiera lo intentas.", "Convierte los muros que aparecen en tu vida en peldaños hacia tus objetivos.", "Si la oportunidad no llama, construye una puerta.", "El optimismo es la fe que conduce al logro.", "Empieza donde estás. Usa lo que tienes. Haz lo que puedes.", "La vida es 10% lo que te pasa y 90% cómo reaccionas.", "La persona que dice que no se puede hacer no debería interrumpir a la persona que lo está haciendo.", "Hoy es una nueva oportunidad para ser mejor que ayer.", "No dejes que el miedo a perder sea mayor que la emoción de ganar.", "El secreto para salir adelante es empezar.", "La disciplina es el puente entre las metas y los logros.", "Solo aquellos que se atreven a tener grandes fracasos terminan logrando grandes éxitos.", "La vida se encoge o se expande en proporción a tu coraje.", "Tu única limitación es tu propia imaginación.", "No esperes. El momento nunca será el \"justo\".", "La magia es creer en ti mismo. Si puedes hacer eso, puedes hacer que cualquier cosa suceda.", "Un pequeño pensamiento positivo por la mañana puede cambiar todo tu día.", "Cae siete veces, levántate ocho.", "Haz de cada día tu obra maestra.", "La perseverancia no es una carrera larga; son muchas carreras cortas una tras otra.", "No importa lo lento que vayas, siempre y cuando no te detengas.", "El que puede cambiar sus pensamientos puede cambiar su destino.", "La mejor venganza es un éxito masivo.", "Lo que la mente del hombre puede concebir y creer, puede lograr.", "La acción es la clave fundamental de todo éxito.", "Eres más valiente de lo que crees, más fuerte de lo que pareces y más inteligente de lo que piensas.", "Las estrellas no pueden brillar sin oscuridad.", "Tu energía presenta a las personas antes de que hables.", "No es la montaña que conquistamos, sino a nosotros mismos.", "El dolor que sientes hoy será la fuerza que sentirás mañana.", "La vida es como andar en bicicleta. Para mantener el equilibrio, debes seguir moviéndote.", "No mires el reloj; haz lo que él hace. Sigue moviéndote.", "Todo lo que siempre has querido está al otro lado del miedo.", "La clave del éxito es enfocarse en las metas, no en los obstáculos.", "La duda mata más sueños que el fracaso.", "Un viaje de mil millas comienza con un solo paso.", "Trabaja duro en silencio y deja que tu éxito haga todo el ruido.", "Si puedes soñarlo, puedes hacerlo.", "La motivación es lo que te pone en marcha. El hábito es lo que hace que sigas.", "No se trata de si te derriban, se trata de si te levantas.", "Apunta a la luna. Si fallas, podrías golpear una estrella.", "Nunca eres demasiado viejo para fijar otra meta o para soñar un nuevo sueño.", "La calidad no es un acto, es un hábito.", "El carácter es poder.", "La mejor manera de predecir el futuro es crearlo.", "Sé el cambio que deseas ver en el mundo.", "La alegría no está en las cosas, está en nosotros.", "El aprendizaje es un tesoro que seguirá a su dueño a todas partes.", "Lo imposible es solo una opinión.", "La mente es todo. En lo que piensas, te conviertes.", "No hay atajos para ningún lugar al que valga la pena ir.", "El éxito no es final, el fracaso no es fatal: es el coraje de continuar lo que cuenta.", "Sé tú mismo; todos los demás ya están ocupados.", "La simplicidad es la máxima sofisticación.", "El que no es lo suficientemente valiente para tomar riesgos no logrará nada en la vida.", "La excelencia no es una habilidad. Es una actitud.", "No puedes tener una vida positiva con una mente negativa.", "La gente olvidará lo que dijiste, la gente olvidará lo que hiciste, pero la gente nunca olvidará cómo los hiciste sentir.", "Si buscas resultados distintos, no hagas siempre lo mismo.", "La vida es una aventura atrevida o no es nada.", "El momento en que quieres renunciar es el momento en que necesitas seguir insistiendo.", "Cree en los comienzos, incluso después de cien finales.", "La paciencia y la perseverancia tienen un efecto mágico ante el cual las dificultades desaparecen y los obstáculos se desvanecen.", "Tu futuro es creado por lo que haces hoy, no mañana.", "El optimismo perpetuo es un multiplicador de fuerza.", "Nunca subestimes el poder que tienes para llevar tu vida en una nueva dirección.", "La felicidad es una dirección, no un lugar.", "Haz algo hoy que tu futuro yo te agradezca.", "El único lugar donde el éxito viene antes que el trabajo es en el diccionario.", "Las dificultades a menudo preparan a la gente común para un destino extraordinario.", "Si no te gusta algo, cámbialo. Si no puedes cambiarlo, cambia tu actitud.", "El coraje no siempre ruge. A veces, el coraje es la vocecita al final del día que dice: \"Mañana lo intentaré de nuevo\".", "El universo no te da lo que pides con tus pensamientos; te da lo que exiges con tus acciones.", "Las limitaciones solo viven en nuestras mentes. Pero si usamos nuestra imaginación, nuestras posibilidades se vuelven ilimitadas.", "Tu mente es un imán. Si piensas en bendiciones, atraes bendiciones. Si piensas en problemas, atraes problemas.", "Un ganador es un soñador que nunca se rinde.", "No dejes que tu pasado ocupe demasiado de tu presente.", "El sol es nuevo cada día.", "La inspiración existe, pero tiene que encontrarte trabajando.", "Un objetivo sin un plan es solo un deseo.", "El valor es la resistencia al miedo, el dominio del miedo, no la ausencia de miedo.", "No tienes que ser grande para empezar, pero tienes que empezar para ser grande.", "Cada día puede no ser bueno, pero hay algo bueno en cada día.", "La vida es un eco. Lo que envías, regresa. Lo que siembras, cosechas.", "La confianza en uno mismo es el primer secreto del éxito.", "Los desafíos son los que hacen la vida interesante y superarlos es lo que hace que la vida tenga sentido.", "Sonríe, es terapia gratuita.", "El fracaso es simplemente la oportunidad de comenzar de nuevo, esta vez de forma más inteligente.", "Todo progresa a través del cambio."
+                "Cree que puedes y ya estás a medio camino.", "El mejor momento para plantar un árbol fue hace 20 años. El segundo mejor momento es ahora.", "Tu actitud, no tu aptitud, determinará tu altitud.", "El éxito es la suma de pequeños esfuerzos repetidos día tras día.", "La única forma de hacer un gran trabajo es amar lo que haces.", "Cada mañana nacemos de nuevo. Lo que hacemos hoy es lo que más importa.", "No cuentes los días, haz que los días cuenten.", "La felicidad no es algo hecho. Proviene de tus propias acciones.", "El futuro pertenece a quienes creen en la belleza de sus sueños.", "Un día brillante depende más de tu actitud que del sol.", "No te preocupes por los fracasos, preocúpate por las oportunidades que pierdes cuando ni siquiera lo intentas.", "Convierte los muros que aparecen en tu vida en peldaños hacia tus objetivos.", "Si la oportunidad no llama, construye una puerta.", "El optimismo es la fe que conduce al logro.", "Empieza donde estás. Usa lo que tienes. Haz lo que puedes.", "La vida es 10% lo que te pasa y 90% cómo reaccionas.", "La persona que dice que no se puede hacer no debería interrumpir a la persona que lo está haciendo.", "Hoy es una nueva oportunidad para ser mejor que ayer.", "No dejes que el miedo a perder sea mayor que la emoción de ganar.", "El secreto para salir adelante es empezar.", "La disciplina es el puente entre las metas y los logros.", "Solo aquellos que se atreven a tener grandes fracasos terminan logrando grandes éxitos.", "La vida se encoge o se expande en proporción a tu coraje.", "Tu única limitación es tu propia imaginación.", "No esperes. El momento nunca será el \"justo\".", "La magia es creer en ti mismo. Si puedes hacer eso, puedes hacer que cualquier cosa suceda.", "Un pequeño pensamiento positivo por la mañana puede cambiar todo tu día.", "Cae siete veces, levántate ocho.", "Haz de cada día tu obra maestra.", "La perseverancia no es una carrera larga; son muchas carreras cortas una tras otra.", "No importa lo lento que vayas, siempre y cuando no te detengas.", "El que puede cambiar sus pensamientos puede cambiar su destino.", "La mejor venganza es un éxito masivo.", "Lo que la mente del hombre puede concebir y creer, puede lograr.", "La acción es la clave fundamental de todo éxito.", "Eres más valiente de lo que crees, más fuerte de lo que pareces y más inteligente de lo que piensas.", "Las estrellas no pueden brillar sin oscuridad.", "Tu energía presenta a las personas antes de que hables.", "No es la montaña que conquistamos, sino a nosotros mismos.", "El dolor que sientes hoy será la fuerza que sentirás mañana.", "La vida es como andar en bicicleta. Para mantener el equilibrio, debes seguir moviéndote.", "No mires el reloj; haz lo que él hace. Sigue moviéndote.", "Todo lo que siempre has querido está al otro lado del miedo.", "La clave del éxito es enfocarse en las metas, no en los obstáculos.", "La duda mata más sueños que el fracaso.", "Un viaje de mil millas comienza con un solo paso.", "Trabaja duro en silencio y deja que tu éxito haga todo el ruido.", "Si puedes soñarlo, puedes hacerlo.", "La motivación es lo que te pone en marcha. El hábito es lo que hace que sigas.", "No se trata de si te derriban, se trata de si te levantas.", "Apunta a la luna. Si fallas, podrías golpear una estrella.", "Nunca eres demasiado viejo para fijar otra meta o para soñar un nuevo sueño.", "La calidad no es un acto, es un hábito.", "El carácter es poder.", "La mejor manera de predecir el futuro es crearlo.", "Sé el cambio que deseas ver en el mundo.", "La alegría no está en las cosas, está en nosotros.", "El aprendizaje es un tesoro que seguirá a su dueño a todas partes.", "Lo imposible es solo una opinión.", "La mente es todo. En lo que piensas, te conviertes.", "No hay atajos para ningún lugar al que valga la pena ir.", "La simplicidad es la máxima sofisticación.", "El que no es lo suficientemente valiente para tomar riesgos no logrará nada en la vida.", "La excelencia no es una habilidad. Es una actitud.", "No puedes tener una vida positiva con una mente negativa.", "La gente olvidará lo que dijiste, la gente olvidará lo que hiciste, pero la gente nunca olvidará cómo los hiciste sentir.", "Si buscas resultados distintos, no hagas siempre lo mismo.", "La vida es una aventura atrevida o no es nada.", "El momento en que quieres renunciar es el momento en que necesitas seguir insistiendo.", "Cree en los comienzos, incluso después de cien finales.", "La paciencia y la perseverancia tienen un efecto mágico ante el cual las dificultades desaparecen y los obstáculos se desvanecen.", "Tu futuro es creado por lo que haces hoy, no mañana.", "El optimismo perpetuo es un multiplicador de fuerza.", "Nunca subestimes el poder que tienes para llevar tu vida en una nueva dirección.", "La felicidad es una dirección, no un lugar.", "Haz algo hoy que tu futuro yo te agradezca.", "El único lugar donde el éxito viene antes que el trabajo es en el diccionario.", "Las dificultades a menudo preparan a la gente común para un destino extraordinario.", "Si no te gusta algo, cámbialo. Si no puedes cambiarlo, cambia tu actitud.", "El coraje no siempre ruge. A veces, el coraje es la vocecita al final del día que dice: \"Mañana lo intentaré de nuevo\".", "El universo no te da lo que pides con tus pensamientos; te da lo que exiges con tus acciones.", "Las limitaciones solo viven en nuestras mentes. Pero si usamos nuestra imaginación, nuestras posibilidades se vuelven ilimitadas.", "Tu mente es un imán. Si piensas en bendiciones, atraes bendiciones. Si piensas en problemas, atraes problemas.", "Un ganador es un soñador que nunca se rinde.", "No dejes que tu pasado ocupe demasiado de tu presente.", "El sol es nuevo cada día.", "La inspiración existe, pero tiene que encontrarte trabajando.", "Un objetivo sin un plan es solo un deseo.", "El valor es la resistencia al miedo, el dominio del miedo, no la ausencia de miedo.", "No tienes que ser grande para empezar, pero tienes que empezar para ser grande.", "Cada día puede no ser bueno, pero hay algo bueno en cada día.", "La vida es un eco. Lo que envías, regresa. Lo que siembras, cosechas.", "La confianza en uno mismo es el primer secreto del éxito.", "Los desafíos son los que hacen la vida interesante y superarlos es lo que hace que la vida tenga sentido.", "Sonríe, es terapia gratuita.", "El fracaso es simplemente la oportunidad de comenzar de nuevo, esta vez de forma más inteligente.", "Todo progresa a través del cambio."
             ];
 
-            // --- Estado de la aplicación ---
+            // --- Application State ---
             let isPlaying = false;
             let isVideoActive = false; 
             let startTimeout, stopTimeout;
-            let currentEfemerideInterval; // Para el intervalo de las efemérides rotativas
+            let currentDailyEfemerideInterval; // For rotating ephemerides
 
-            // Configura el contexto de audio para el visualizador
+            // Configures the audio context for the visualizer
             function setupAudioContext() {
                 if (audioCtx) {
-                    console.log("AudioContext ya existe. Estado actual:", audioCtx.state);
+                    console.log("AudioContext already exists. Current state:", audioCtx.state);
                     if (audioCtx.state === 'suspended') {
                         audioCtx.resume().then(() => {
-                            console.log("AudioContext reanudado desde setupAudioContext.");
+                            console.log("AudioContext resumed from setupAudioContext.");
                         }).catch(e => {
-                            console.error("Error al reanudar AudioContext en setupAudioContext:", e);
+                            console.error("Error resuming AudioContext in setupAudioContext:", e);
                             showMessage("Error al reanudar el vúmetro: " + e.message, true, 5000);
                         });
                     }
@@ -487,38 +462,61 @@
                     analyser.connect(audioCtx.destination); 
                     bufferLength = analyser.frequencyBinCount; 
                     dataArray = new Uint8Array(bufferLength); 
-                    console.log("AudioContext inicializado. Estado:", audioCtx.state);
+                    console.log("AudioContext initialized. State:", audioCtx.state);
                 } catch (e) {
-                    console.error("Error al configurar el contexto de audio:", e);
+                    console.error("Error configuring audio context:", e);
                     showMessage("El navegador no soporta el vúmetro o hay un problema con el stream (CORS).", true, 5000);
                 }
             }
 
-            // --- Controles de audio ---
+            // --- Audio Controls ---
             function playRadio() {
                 if (isPlaying) return; 
 
-                console.log("Intentando iniciar playRadio()...");
+                console.log("Attempting to start playRadio()...");
 
-                if (!audioCtx || (audioCtx && audioCtx.state === 'suspended')) {
-                    setupAudioContext(); 
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume().then(() => {
+                        console.log("AudioContext resumed before play().");
+                        attemptToPlay();
+                    }).catch(e => {
+                        console.error("Error resuming AudioContext before play():", e);
+                        showMessage("Error al reanudar el audio: " + e.message, true, 5000);
+                    });
+                } else if (!audioCtx) {
+                    setupAudioContext();
+                    // Give a moment for context to be created before attempting to play
+                    setTimeout(attemptToPlay, 50); 
+                } else {
+                    attemptToPlay();
                 }
-                
+            }
+
+            function attemptToPlay() {
                 radioPlayer.play().then(() => {
-                    console.log("Reproducción de radio iniciada con éxito.");
+                    console.log("Radio playback started successfully.");
                     isPlaying = true;
                     playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>'; 
 
                     if (!isVideoActive && audioCtx && audioCtx.state === 'running') {
                         draw();
                     } else if (audioCtx && audioCtx.state !== 'running') {
-                         console.warn("AudioContext no está en estado 'running' después de play(). Vúmetro no se iniciará de inmediato.");
+                         console.warn("AudioContext is not in 'running' state after play(). VU meter will not start immediately.");
                     }
                 }).catch(e => {
-                    console.error("Error al reproducir audio:", e);
-                    showMessage("No se pudo iniciar la radio. Asegúrate de interactuar con la página primero.", true, 6000);
+                    console.error("Error playing audio:", e);
+                    let errorMessage = "No se pudo iniciar la radio. Asegúrate de interactuar con la página primero.";
+                    if (e.name === "NotAllowedError") {
+                        errorMessage += " (El navegador bloqueó la reproducción automática. Haz clic en el botón de Play.)";
+                    } else if (e.name === "AbortError") {
+                        errorMessage += " (La reproducción fue abortada, posiblemente por un cambio de fuente rápido.)";
+                    } else if (e.message.includes("Failed to load because no supported source was found")) {
+                        errorMessage += " (URL del stream no válida o problema de CORS.)";
+                    }
+                    showMessage(errorMessage, true, 6000);
                 });
             }
+
 
             function pauseRadio() {
                 if (!isPlaying) return; 
@@ -615,7 +613,7 @@
                 showMessage(`Vúmetro Efecto ${currentVumeterEffect + 1}`, false, 1500); 
             }
 
-            // --- Lógica de likes con Firestore ---
+            // --- Likes Logic with Firestore ---
             function setupLikesListener() {
                 if (globalLikeDocRef && db) { 
                     onSnapshot(globalLikeDocRef, (docSnap) => {
@@ -623,21 +621,21 @@
                             const data = docSnap.data();
                             const currentLikes = data.count || 0;
                             likeCountSpan.textContent = `${currentLikes} Me Gusta`;
-                            console.log("Likes actualizados desde Firestore:", currentLikes);
+                            console.log("Likes updated from Firestore:", currentLikes);
                         } else {
                             setDoc(globalLikeDocRef, { count: 0 }).then(() => {
                                 likeCountSpan.textContent = `0 Me Gusta`;
-                                console.log("Documento de likes inicializado en Firestore.");
+                                console.log("Likes document initialized in Firestore.");
                             }).catch(e => {
-                                console.error("Error al inicializar likes:", e);
+                                console.error("Error initializing likes:", e);
                             });
                         }
                     }, (error) => {
-                        console.error("Error al escuchar likes de Firestore:", error);
+                        console.error("Error listening to Firestore likes:", error);
                         showMessage("Error de conexión con los likes. Los 'Me Gusta' podrían no actualizarse.", true, 5000);
                     });
                 } else {
-                    console.warn("Firestore no está disponible para likes. Revisa la inicialización de Firebase.");
+                    console.warn("Firestore is not available for likes. Check Firebase initialization.");
                     likeCountSpan.textContent = `0 Me Gusta (no persistente)`;
                 }
             }
@@ -652,11 +650,11 @@
                     await updateDoc(globalLikeDocRef, {
                         count: increment(1) 
                     });
-                    console.log("Like incrementado en Firestore.");
+                    console.log("Like incremented in Firestore.");
                     likeBtn.querySelector('i').classList.replace('far', 'fas'); 
                     likeBtn.querySelector('i').classList.add('text-red-500'); 
                 } catch (e) {
-                    console.error("Error al registrar el like en Firestore:", e);
+                    console.error("Error registering like in Firestore:", e);
                     showMessage("Error al registrar tu 'Me Gusta'. Intenta de nuevo.", true, 4000);
                 }
             }
@@ -679,7 +677,7 @@
                 document.documentElement.classList.toggle('light'); 
             }
 
-            // --- Lógica de programadores (schedulers) ---
+            // --- Scheduler Logic ---
             setStartBtn.addEventListener('click', () => {
                 const startTimeValue = startTimeInput.value;
                 if (!startTimeValue) {
@@ -722,7 +720,7 @@
             });
 
 
-            // --- Lógica de Frases Motivacionales (anteriormente Efemérides) ---
+            // --- Motivational Phrases Logic (formerly Ephemerides) ---
             function loadMotivationalPhrase() { 
                 const ONE_DAY_MS = 24 * 60 * 60 * 1000; 
 
@@ -734,9 +732,9 @@
                     lastPhraseIndex = (lastPhraseIndex + 1) % motivationalPhrases.length;
                     localStorage.setItem('lastPhraseIndex', lastPhraseIndex.toString());
                     localStorage.setItem('lastPhraseUpdate', now.toString());
-                    console.log("Nueva frase motivacional seleccionada para el día.");
+                    console.log("New motivational phrase selected for the day.");
                 } else {
-                    console.log("Mostrando la misma frase motivacional del día.");
+                    console.log("Displaying the same motivational phrase for the day.");
                 }
                 
                 const currentPhrase = motivationalPhrases[lastPhraseIndex];
@@ -746,49 +744,7 @@
                 motivationalPhraseContentDiv.textContent = currentPhrase; 
             }
 
-            // --- Lógica de Carga de Efemérides a Firestore (Herramienta de Admin) ---
-            uploadEfeméridesBtn.addEventListener('click', async () => {
-                if (!db) {
-                    showMessage("Base de datos no inicializada. No se pueden cargar efemérides.", true, 5000);
-                    return;
-                }
-
-                const jsonText = efemeridesJsonInput.value;
-                if (!jsonText) {
-                    showMessage("Por favor, pega el JSON de efemérides en el cuadro de texto.", true, 3000);
-                    return;
-                }
-
-                try {
-                    const efeméridesToUpload = JSON.parse(jsonText);
-                    let uploadedCount = 0;
-                    let errorCount = 0;
-
-                    for (const dayKey in efeméridesToUpload) {
-                        if (efeméridesToUpload.hasOwnProperty(dayKey)) {
-                            const dailyEvents = efeméridesToUpload[dayKey];
-                            // Ruta: artifacts/{appId}/public/data/dailyEfemérides/{MM-DD}
-                            const docRef = doc(db, `artifacts/${appIdForFirestore}/public/data/dailyEfemérides/${dayKey}`);
-                            try {
-                                await setDoc(docRef, { events: dailyEvents });
-                                console.log(`Efemérides para ${dayKey} cargadas con éxito.`);
-                                uploadedCount++;
-                            } catch (error) {
-                                console.error(`Error al cargar efemérides para ${dayKey}:`, error);
-                                errorCount++;
-                            }
-                        }
-                    }
-                    showMessage(`Carga de efemérides completada. Éxito: ${uploadedCount}, Errores: ${errorCount}.`, errorCount > 0, 8000);
-                    // Después de cargar, recarga las efemérides para que se muestren las nuevas
-                    loadDailyEfemérides(); 
-                } catch (e) {
-                    showMessage("Error al parsear el JSON. Asegúrate de que el formato sea válido.", true, 5000);
-                    console.error("Error al parsear JSON de efemérides:", e);
-                }
-            });
-
-            // --- Lógica para mostrar las Efemérides del Día desde Firestore ---
+            // --- Logic to display Daily Ephemerides from Firestore ---
             let currentDailyEfemerideIndex = 0;
             let dailyEfemerides = [];
             let dailyEfemeridesIntervalId;
@@ -804,7 +760,7 @@
                 const month = String(today.getMonth() + 1).padStart(2, '0');
                 const docKey = `${month}-${day}`;
 
-                // Ruta: artifacts/{appId}/public/data/dailyEfemérides/{MM-DD}
+                // Path: artifacts/{appId}/public/data/dailyEfemérides/{MM-DD}
                 const docRef = doc(db, `artifacts/${appIdForFirestore}/public/data/dailyEfemérides/${docKey}`);
 
                 try {
@@ -818,10 +774,10 @@
                         }
                     } else {
                         dailyEfeméridesDisplay.innerHTML = '<p class="text-center text-gray-500 text-sm">No se encontraron efemérides para hoy.</p>';
-                        console.log(`No se encontró el documento de efemérides para ${docKey}.`);
+                        console.log(`No ephemerides document found for ${docKey}.`);
                     }
                 } catch (e) {
-                    console.error("Error al cargar efemérides diarias desde Firestore:", e);
+                    console.error("Error loading daily ephemerides from Firestore:", e);
                     dailyEfeméridesDisplay.innerHTML = '<p class="text-center text-red-500 text-sm">Error al cargar efemérides diarias.</p>';
                     showMessage("Error al cargar efemérides diarias. Revisa la consola para más detalles.", true, 5000);
                 }
@@ -837,7 +793,7 @@
                     return;
                 }
 
-                currentDailyEfemerideIndex = 0; // Reinicia el índice al iniciar la rotación
+                currentDailyEfemerideIndex = 0; // Reset index when starting rotation
 
                 function updateDailyEfemerideDisplay() {
                     const efemeride = dailyEfemerides[currentDailyEfemerideIndex];
@@ -853,14 +809,14 @@
                     currentDailyEfemerideIndex = (currentDailyEfemerideIndex + 1) % dailyEfemerides.length;
                 }
 
-                updateDailyEfemerideDisplay(); // Muestra la primera inmediatamente
-                dailyEfemeridesIntervalId = setInterval(updateDailyEfemerideDisplay, 8000); // Cambia cada 8 segundos
+                updateDailyEfemerideDisplay(); // Show the first one immediately
+                dailyEfeméridesIntervalId = setInterval(updateDailyEfemerideDisplay, 8000); // Change every 8 seconds
             }
 
 
-            // --- Funciones de dibujo del Vúmetro --- (Estas ya estaban, se mantienen)
+            // --- VU Meter Drawing Functions --- 
             function draw() {
-                if (!isPlaying || isVideoActive || !audioCtx || audioCtx.state !== 'running' || !dataArray) {
+                if (!isPlaying || isVideoActive || !audioCtx || audioCtx.state !== 'running' || !analyser || !dataArray) {
                     cancelAnimationFrame(animationFrameId);
                     return;
                 }
@@ -873,24 +829,9 @@
                     case 0: drawBars(); break; case 1: drawCircular(); break; case 2: drawWave(); break; case 3: drawSunburst(); break; case 4: drawGalaxy(); break; case 5: drawTunnel(); break; case 6: drawReflectedBars(); break; case 7: drawParticleWeb(); break; case 8: drawColorBlocks(); break; case 9: drawTexturedLines(); break;
                 }
             }
-            const drawBars = () => { /* ... */ };
-            const drawCircular = () => { /* ... */ };
-            const drawWave = () => { /* ... */ };
-            const drawSunburst = () => { /* ... */ };
-            const drawGalaxy = () => { /* ... */ };
-            const drawTunnel = () => { /* ... */ };
-            const drawReflectedBars = () => { /* ... */ };
-            const drawParticleWeb = () => { /* ... */ };
-            const drawColorBlocks = () => { /* ... */ };
-            const drawTexturedLines = () => { /* ... */ };
             
-            // Re-declaración de las funciones de dibujo para asegurar que estén dentro del alcance
-            // Estas ya estaban bien, solo asegúrate de que el contenido de cada una se mantiene.
-            // Para mantener el código conciso en esta respuesta, solo dejo los nombres,
-            // pero en tu archivo completo, el cuerpo de estas funciones debe estar presente.
-
-            // Dibuja barras de audio verticales
-            Object.assign(drawBars, () => {
+            // Draws vertical audio bars
+            const drawBars = () => {
                 const barWidth = (canvas.width / bufferLength) * 2.5; 
                 let x = 0;
                 for (let i = 0; i < bufferLength; i++) {
@@ -900,10 +841,10 @@
                     canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight); 
                     x += barWidth + 1; 
                 }
-            });
+            };
 
-            // Dibuja barras circulares desde el centro
-            Object.assign(drawCircular, () => {
+            // Draws circular bars from the center
+            const drawCircular = () => {
                 const centerX = canvas.width / 2;
                 const centerY = canvas.height / 2;
                 const radius = Math.min(centerX, centerY) * 0.4; 
@@ -922,10 +863,10 @@
                     canvasCtx.lineTo(xEnd, yEnd);
                     canvasCtx.stroke();
                 }
-            });
+            };
             
-            // Dibuja una onda de tiempo
-            Object.assign(drawWave, () => {
+            // Draws a time wave
+            const drawWave = () => {
                 analyser.getByteTimeDomainData(dataArray); 
                 canvasCtx.lineWidth = 2;
                 const hue = Date.now() / 20 % 360; 
@@ -945,10 +886,10 @@
                 }
                 canvasCtx.lineTo(canvas.width, canvas.height / 2);
                 canvasCtx.stroke();
-            });
+            };
 
-            // Dibuja un efecto de explosión solar
-            Object.assign(drawSunburst, () => {
+            // Draws a sunburst effect
+            const drawSunburst = () => {
                 const centerX = canvas.width / 2;
                 const centerY = canvas.height / 2;
                 for (let i = 0; i < bufferLength; i+=4) { 
@@ -969,10 +910,10 @@
                     canvasCtx.stroke();
                     canvasCtx.restore(); 
                 }
-            });
+            };
             
-            // Dibuja un efecto de galaxia con partículas
-            Object.assign(drawGalaxy, () => {
+            // Draws a galaxy effect with particles
+            const drawGalaxy = () => {
                 const centerX = canvas.width / 2;
                 const centerY = canvas.height / 2;
                 for (let i = 0; i < bufferLength; i++) {
@@ -989,10 +930,10 @@
                         canvasCtx.fill();
                     }
                 }
-            });
+            };
 
-            // Dibuja un efecto de túnel concéntrico
-            Object.assign(drawTunnel, () => {
+            // Draws a concentric tunnel effect
+            const drawTunnel = () => {
                 const centerX = canvas.width / 2;
                 const centerY = canvas.height / 2;
                 for (let i = 0; i < bufferLength; i+=8) { 
@@ -1006,10 +947,10 @@
                     canvasCtx.arc(centerX, centerY, radius, 0, Math.PI * 2); 
                     canvasCtx.stroke();
                 }
-            });
+            };
 
-            // Dibuja barras con reflejo vertical
-            Object.assign(drawReflectedBars, () => {
+            // Draws bars with vertical reflection
+            const drawReflectedBars = () => {
                 const barWidth = canvas.width / bufferLength;
                 const centerY = canvas.height / 2;
                 for (let i = 0; i < bufferLength; i++) {
@@ -1022,10 +963,10 @@
                     canvasCtx.fillStyle = gradient;
                     canvasCtx.fillRect(i * barWidth, centerY - barHeight, barWidth, barHeight * 2); 
                 }
-            });
+            };
             
-            // Dibuja una red de partículas conectadas
-            Object.assign(drawParticleWeb, () => {
+            // Draws a connected particle web
+            const drawParticleWeb = () => {
                 let particles = [];
                 for(let i = 0; i < bufferLength; i+=8) { 
                     const value = dataArray[i];
@@ -1053,10 +994,10 @@
                         }
                     }
                 }
-            });
+            };
 
-            // Dibuja un patrón de bloques de color
-            Object.assign(drawColorBlocks, () => {
+            // Draws a color block pattern
+            const drawColorBlocks = () => {
                 const blockSize = canvas.width / 16; 
                 for (let i = 0; i < 16; i++) {
                     for (let j = 0; j < 9; j++) {
@@ -1067,10 +1008,10 @@
                         canvasCtx.fillRect(i * blockSize, j * blockSize, blockSize-1, blockSize-1); 
                     }
                 }
-            });
+            };
             
-            // Dibuja líneas texturizadas que suben desde abajo
-            Object.assign(drawTexturedLines, () => {
+            // Draws textured lines rising from the bottom
+            const drawTexturedLines = () => {
                 for (let i = 0; i < bufferLength; i += 4) { 
                     const value = dataArray[i];
                     const y = canvas.height - value; 
@@ -1081,9 +1022,9 @@
                     canvasCtx.fillStyle = gradient;
                     canvasCtx.fillRect(i * 3, y, 2, canvas.height - y); 
                 }
-            });
+            };
             
-            // --- Inicialización ---
+            // --- Initialization ---
             function init() {
                 radioPlayer.src = streams[currentStreamIndex].url; 
                 updateStationLabel(); 
@@ -1097,14 +1038,38 @@
                     document.documentElement.classList.add('dark');
                     document.documentElement.classList.remove('light');
                 }
-                loadMotivationalPhrase(); // Carga la frase motivacional
-                // loadDailyEfemérides() se llama después de la autenticación de Firebase
+                loadMotivationalPhrase(); // Load the motivational phrase
+                // loadDailyEfemérides() is called after Firebase authentication
 
                 canvas.width = playerDisplay.clientWidth;
                 canvas.height = playerDisplay.clientHeight;
                 window.addEventListener('resize', () => {
                     canvas.width = playerDisplay.clientWidth;
                     canvas.height = playerDisplay.clientHeight;
+                });
+
+                // Add event listener for audio errors
+                radioPlayer.addEventListener('error', (e) => {
+                    console.error("Error en el reproductor de audio:", e);
+                    let errorMessage = "Error en la reproducción de audio.";
+                    switch (e.target.error.code) {
+                        case e.target.error.MEDIA_ERR_ABORTED:
+                            errorMessage += " La carga de audio fue abortada.";
+                            break;
+                        case e.target.error.MEDIA_ERR_NETWORK:
+                            errorMessage += " Error de red al descargar el audio.";
+                            break;
+                        case e.target.error.MEDIA_ERR_DECODE:
+                            errorMessage += " Error al decodificar el audio.";
+                            break;
+                        case e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                            errorMessage += " La fuente de audio no es compatible o no se pudo encontrar.";
+                            break;
+                        default:
+                            errorMessage += " Error desconocido.";
+                            break;
+                    }
+                    showMessage(errorMessage, true, 8000);
                 });
             }
 
