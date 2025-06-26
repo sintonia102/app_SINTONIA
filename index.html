@@ -101,8 +101,7 @@
             height: 100%;
         }
 
-        /* Styles for video container (ADJUSTED FOR NEW POSITION) */
-        /* These classes will be applied to videoContainer when dynamically created */
+        /* Styles for video container */
         .video-container-dynamic {
             position: absolute; /* To overlap the visualizer */
             top: 0;
@@ -118,12 +117,11 @@
             border-radius: 0.5rem;
         }
 
-        /* Fade animation for ephemerides */
+        /* Fade animation for ephemerides and phrases */
         .efemeride-fade {
-            animation: fadeInOut 8s infinite; /* Keep animation for transition when phrase loads */
+            animation: fadeInOut 8s infinite;
         }
 
-        /* Keyframes for fade animation */
         @keyframes fadeInOut {
             0%, 100% { opacity: 0; }
             15%, 85% { opacity: 1; }
@@ -280,8 +278,8 @@
             </div>
 
             <!-- New container for Ephemerides (below icons) -->
-            <div id="daily-efemerides-display" class="mt-4 space-y-2">
-                <!-- Daily ephemerides with their colors will be injected here -->
+            <div id="daily-efemerides-display" class="mt-4 space-y-2 h-16 flex items-center justify-center">
+                <!-- Daily ephemerides will be injected here -->
                 <p class="text-center text-gray-500 text-sm">Cargando efemérides del día...</p>
             </div>
 
@@ -318,7 +316,7 @@
         import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // --- DOM Elements (Declared at the beginning to avoid ReferenceError) ---
+            // --- DOM Elements ---
             const radioPlayer = document.getElementById('radio-player');
             const playPauseBtn = document.getElementById('play-pause-btn');
             const volumeSlider = document.getElementById('volume-slider');
@@ -335,18 +333,22 @@
             const canvasCtx = canvas.getContext('2d');
             const currentStationLabel = document.getElementById('current-station-label');
             const playerDisplay = document.getElementById('player-display'); 
-
             const startTimeInput = document.getElementById('start-time-input');
             const setStartBtn = document.getElementById('set-start-btn');
             const stopTimeInput = document.getElementById('stop-time-input');
             const setStopBtn = document.getElementById('set-stop-btn');
-
-            // Elements for motivational phrases footer
             const motivationalPhraseContentDiv = document.getElementById('motivational-phrase-content');
-            // Elements for daily ephemerides footer
             const dailyEfeméridesDisplay = document.getElementById('daily-efemerides-display');
             
-            // --- Firebase Configuration ---
+            // --- DATOS LOCALES DE EFEMÉRIDES (Reemplaza a Firebase) ---
+            const localEphemeridesData = {
+                "01-01": ["Triunfo de la Revolución Cubana (1959): Las fuerzas lideradas por Fidel Castro entran en La Habana, marcando el fin de la dictadura de Fulgencio Batista.","Ocupación Británica de las Malvinas (1833): Una corbeta británica expulsa a las autoridades argentinas y a los pobladores de las Islas Malvinas, iniciando la ocupación ilegal del archipiélago.","Entrada en vigor del Mercosur (1995): El Mercado Común del Sur, integrado por Argentina, Brasil, Paraguay y Uruguay, entra en plena vigencia.","Proclamación de la Emancipación en EE.UU. (1863): Abraham Lincoln declara libres a los esclavos en los estados confederados.","Independencia de Haití (1804): Haití se convierte en la primera república negra del mundo y la segunda nación independiente de América.","Entrada en circulación del Euro (2002): Los billetes y monedas de euro entran en circulación en 12 países de la Unión Europea.",'Nacimiento de J. D. Salinger (1919): Nace en Nueva York el escritor estadounidense, autor de "El guardián entre el centeno".',"Fundación de la Organización Mundial del Comercio (OMC) (1995): Se establece el organismo que supervisa el comercio internacional.","Día del Dominio Público: Cada año, obras de autores fallecidos hace un determinado tiempo pasan a ser de dominio público.","Año Nuevo: Celebración global que marca el inicio de un nuevo año en el calendario gregoriano."],
+                "01-02": ['Nacimiento de Carlos "Lole" Reutemann (1942): Nace en Santa Fe el destacado piloto de Fórmula 1 y posterior gobernador de su provincia.',"Toma de Granada (1492): Los Reyes Católicos conquistan el Reino de Granada, último bastión musulmán en la Península Ibérica.","Nacimiento de Isaac Asimov (1920): Nace en Rusia el prolífico escritor y divulgador científico, maestro de la ciencia ficción.","Primer alunizaje suave de una sonda (1959): La sonda soviética Luna 1 se convierte en la primera nave en escapar de la gravedad terrestre.","Japón captura Manila (1942): Durante la Segunda Guerra Mundial, las tropas japonesas ocupan la capital de Filipinas.",'Fallecimiento de Fausto Coppi (1960): Muere el legendario ciclista italiano, apodado "Il Campionissimo".',"Día Internacional del Policía: Se rinde homenaje a los oficiales de policía caídos en cumplimiento de su deber.","Se funda el Racing Club (1903): Se funda en Avellaneda uno de los cinco grandes del fútbol argentino.","Luis Muñoz Marín se convierte en el primer gobernador de Puerto Rico (1949): Es el primer gobernador elegido democráticamente en la isla.","Se declara monumento histórico la casa de Domingo F. Sarmiento (1910): La casa natal del prócer en San Juan es protegida por su valor histórico."],
+                "01-03": ["Combate de San Lorenzo (1813): Las fuerzas lideradas por José de San Martín obtienen una victoria clave en su única batalla en territorio argentino.",'Nacimiento de J.R.R. Tolkien (1892): Nace en Sudáfrica el escritor británico, autor de "El Hobbit" y "El Señor de los Anillos".',"Excomunión de Martín Lutero (1521): El Papa León X excomulga a Martín Lutero por sus críticas a la Iglesia Católica.","Nacimiento de Mel Gibson (1956): Nace en Nueva York el actor y director de cine.","Alaska se convierte en el 49º estado de EE.UU. (1959): Se formaliza la admisión de Alaska a la Unión.","Fundación de Apple Computer (1977): Steve Jobs, Steve Wozniak y Mike Markkula fundan formalmente la compañía.","Fallecimiento de Jack Ruby (1967): Muere el hombre que asesinó a Lee Harvey Oswald, el presunto asesino de John F. Kennedy.","Nacimiento de Michael Schumacher (1969): Nace en Alemania el siete veces campeón del mundo de Fórmula 1.","Panamá asume el control total del Canal (1990): De acuerdo a los Tratados Torrijos-Carter, Panamá toma el control administrativo del canal.","Se patenta la pajita para beber (1888): Marvin C. Stone patenta la pajita de papel."],
+                "12-31": ["Nochevieja / Víspera de Año Nuevo: Celebración global que marca el fin de un año y la espera del siguiente.","Se entrega el Canal de Panamá a Panamá (1999): Estados Unidos transfiere el control total del canal a Panamá, en cumplimiento de los Tratados Torrijos-Carter.","Se funda la Compañía Británica de las Indias Orientales (1600).","Thomas Edison demuestra la luz incandescente (1879): Realiza la primera demostración pública de su bombilla.","Fallecimiento de Miguel de Unamuno (1936).","Se retira el Plan Marshall (1951).","Nacimiento de Henri Matisse (1869).","Boris Yeltsin renuncia a la presidencia de Rusia (1999): Deja a Vladimir Putin como presidente interino.","Fallecimiento de George Marshall (1959).",'Se estrena "El Padrino II" (1974).']
+            };
+            
+            // --- Configuración de Firebase ---
             const firebaseConfig = {
                 apiKey: "AIzaSyDomYzzPU9zxP9KdMGKvOrrNlwt0RLVE7Y",
                 authDomain: "appsintonia-66989.firebaseapp.com",
@@ -362,20 +364,17 @@
             let userId = 'anonymous'; 
             let globalLikeDocRef = null; 
 
-            // Function to display messages
+            // Función para mostrar mensajes
             function showMessage(text, isError = false, duration = 3000) {
                 messageBox.textContent = text;
                 messageBox.classList.remove('hidden', 'show', 'error');
                 if (isError) {
                     messageBox.classList.add('error');
                 }
-                // Force a reflow to ensure the transition plays
                 void messageBox.offsetWidth; 
                 messageBox.classList.add('show');
-
                 setTimeout(() => {
                     messageBox.classList.remove('show');
-                    // Hide completely after transition
                     setTimeout(() => messageBox.classList.add('hidden'), 300); 
                 }, duration);
             }
@@ -399,60 +398,46 @@
                         console.log("Firebase Auth Ready. User ID:", userId);
                         globalLikeDocRef = doc(db, `artifacts/${appIdForFirestore}/public/data/radioLikes/globalLikeCount`);
                         setupLikesListener();
-                        loadDailyEfemérides(); // Load ephemerides on start and authentication
                     } else {
                         console.log("No user is signed in.");
                         userId = 'anonymous';
-                        showMessage("No se pudo autenticar en Firebase. Algunas funciones pueden estar limitadas.", true, 5000);
+                        showMessage("No se pudo autenticar. Algunas funciones pueden estar limitadas.", true);
                     }
+                    loadDailyEfemérides();
                 });
             } catch (e) {
-                console.error("Error initializing Firebase or authenticating:", e);
-                showMessage("Error al iniciar la base de datos (Firebase). Algunas funciones pueden no estar disponibles. Por favor, verifica tu configuración de Firebase en el código y las reglas de seguridad.", true, 10000);
+                console.error("Error initializing Firebase:", e);
+                showMessage("Error al iniciar la base de datos. Los 'Me Gusta' no estarán disponibles.", true, 8000);
+                loadDailyEfemérides();
             }
 
-            // --- Audio Streams ---
+            // --- Streams de Audio ---
             const streams = [
                 { name: "SINTONIA", url: "https://stream.radioservice.org/8046/stream" },
                 { name: "ZENO FM", url: "https://stream.zeno.fm/40x1zezb7nhvv" }
             ];
             let currentStreamIndex = 0;
 
-            // --- VU Meter (Visualizer) Configuration ---
-            let audioCtx;
-            let analyser;
-            let source;
-            let dataArray;
-            let bufferLength;
+            // --- Configuración del Vúmetro ---
+            let audioCtx, analyser, source, dataArray, bufferLength;
             let currentVumeterEffect = 0;
             const totalVumeterEffects = 10;
             let animationFrameId;
 
-            // --- Motivational Phrases ---
+            // --- Frases Motivacionales ---
             const motivationalPhrases = [
-                "Cree que puedes y ya estás a medio camino.", "El mejor momento para plantar un árbol fue hace 20 años. El segundo mejor momento es ahora.", "Tu actitud, no tu aptitud, determinará tu altitud.", "El éxito es la suma de pequeños esfuerzos repetidos día tras día.", "La única forma de hacer un gran trabajo es amar lo que haces.", "Cada mañana nacemos de nuevo. Lo que hacemos hoy es lo que más importa.", "No cuentes los días, haz que los días cuenten.", "La felicidad no es algo hecho. Proviene de tus propias acciones.", "El futuro pertenece a quienes creen en la belleza de sus sueños.", "Un día brillante depende más de tu actitud que del sol.", "No te preocupes por los fracasos, preocúpate por las oportunidades que pierdes cuando ni siquiera lo intentas.", "Convierte los muros que aparecen en tu vida en peldaños hacia tus objetivos.", "Si la oportunidad no llama, construye una puerta.", "El optimismo es la fe que conduce al logro.", "Empieza donde estás. Usa lo que tienes. Haz lo que puedes.", "La vida es 10% lo que te pasa y 90% cómo reaccionas.", "La persona que dice que no se puede hacer no debería interrumpir a la persona que lo está haciendo.", "Hoy es una nueva oportunidad para ser mejor que ayer.", "No dejes que el miedo a perder sea mayor que la emoción de ganar.", "El secreto para salir adelante es empezar.", "La disciplina es el puente entre las metas y los logros.", "Solo aquellos que se atreven a tener grandes fracasos terminan logrando grandes éxitos.", "La vida se encoge o se expande en proporción a tu coraje.", "Tu única limitación es tu propia imaginación.", "No esperes. El momento nunca será el \"justo\".", "La magia es creer en ti mismo. Si puedes hacer eso, puedes hacer que cualquier cosa suceda.", "Un pequeño pensamiento positivo por la mañana puede cambiar todo tu día.", "Cae siete veces, levántate ocho.", "Haz de cada día tu obra maestra.", "La perseverancia no es una carrera larga; son muchas carreras cortas una tras otra.", "No importa lo lento que vayas, siempre y cuando no te detengas.", "El que puede cambiar sus pensamientos puede cambiar su destino.", "La mejor venganza es un éxito masivo.", "Lo que la mente del hombre puede concebir y creer, puede lograr.", "La acción es la clave fundamental de todo éxito.", "Eres más valiente de lo que crees, más fuerte de lo que pareces y más inteligente de lo que piensas.", "Las estrellas no pueden brillar sin oscuridad.", "Tu energía presenta a las personas antes de que hables.", "No es la montaña que conquistamos, sino a nosotros mismos.", "El dolor que sientes hoy será la fuerza que sentirás mañana.", "La vida es como andar en bicicleta. Para mantener el equilibrio, debes seguir moviéndote.", "No mires el reloj; haz lo que él hace. Sigue moviéndote.", "Todo lo que siempre has querido está al otro lado del miedo.", "La clave del éxito es enfocarse en las metas, no en los obstáculos.", "La duda mata más sueños que el fracaso.", "Un viaje de mil millas comienza con un solo paso.", "Trabaja duro en silencio y deja que tu éxito haga todo el ruido.", "Si puedes soñarlo, puedes hacerlo.", "La motivación es lo que te pone en marcha. El hábito es lo que hace que sigas.", "No se trata de si te derriban, se trata de si te levantas.", "Apunta a la luna. Si fallas, podrías golpear una estrella.", "Nunca eres demasiado viejo para fijar otra meta o para soñar un nuevo sueño.", "La calidad no es un acto, es un hábito.", "El carácter es poder.", "La mejor manera de predecir el futuro es crearlo.", "Sé el cambio que deseas ver en el mundo.", "La alegría no está en las cosas, está en nosotros.", "El aprendizaje es un tesoro que seguirá a su dueño a todas partes.", "Lo imposible es solo una opinión.", "La mente es todo. En lo que piensas, te conviertes.", "No hay atajos para ningún lugar al que valga la pena ir.", "La simplicidad es la máxima sofisticación.", "El que no es lo suficientemente valiente para tomar riesgos no logrará nada en la vida.", "La excelencia no es una habilidad. Es una actitud.", "No puedes tener una vida positiva con una mente negativa.", "La gente olvidará lo que dijiste, la gente olvidará lo que hiciste, pero la gente nunca olvidará cómo los hiciste sentir.", "Si buscas resultados distintos, no hagas siempre lo mismo.", "La vida es una aventura atrevida o no es nada.", "El momento en que quieres renunciar es el momento en que necesitas seguir insistiendo.", "Cree en los comienzos, incluso después de cien finales.", "La paciencia y la perseverancia tienen un efecto mágico ante el cual las dificultades desaparecen y los obstáculos se desvanecen.", "Tu futuro es creado por lo que haces hoy, no mañana.", "El optimismo perpetuo es un multiplicador de fuerza.", "Nunca subestimes el poder que tienes para llevar tu vida en una nueva dirección.", "La felicidad es una dirección, no un lugar.", "Haz algo hoy que tu futuro yo te agradezca.", "El único lugar donde el éxito viene antes que el trabajo es en el diccionario.", "Las dificultades a menudo preparan a la gente común para un destino extraordinario.", "Si no te gusta algo, cámbialo. Si no puedes cambiarlo, cambia tu actitud.", "El coraje no siempre ruge. A veces, el coraje es la vocecita al final del día que dice: \"Mañana lo intentaré de nuevo\".", "El universo no te da lo que pides con tus pensamientos; te da lo que exiges con tus acciones.", "Las limitaciones solo viven en nuestras mentes. Pero si usamos nuestra imaginación, nuestras posibilidades se vuelven ilimitadas.", "Tu mente es un imán. Si piensas en bendiciones, atraes bendiciones. Si piensas en problemas, atraes problemas.", "Un ganador es un soñador que nunca se rinde.", "No dejes que tu pasado ocupe demasiado de tu presente.", "El sol es nuevo cada día.", "La inspiración existe, pero tiene que encontrarte trabajando.", "Un objetivo sin un plan es solo un deseo.", "El valor es la resistencia al miedo, el dominio del miedo, no la ausencia de miedo.", "No tienes que ser grande para empezar, pero tienes que empezar para ser grande.", "Cada día puede no ser bueno, pero hay algo bueno en cada día.", "La vida es un eco. Lo que envías, regresa. Lo que siembras, cosechas.", "La confianza en uno mismo es el primer secreto del éxito.", "Los desafíos son los que hacen la vida interesante y superarlos es lo que hace que la vida tenga sentido.", "Sonríe, es terapia gratuita.", "El fracaso es simplemente la oportunidad de comenzar de nuevo, esta vez de forma más inteligente.", "Todo progresa a través del cambio."
+                "Cree que puedes y ya estás a medio camino.", "El mejor momento para plantar un árbol fue hace 20 años. El segundo mejor momento es ahora.", "Tu actitud, no tu aptitud, determinará tu altitud.", "El éxito es la suma de pequeños esfuerzos repetidos día tras día.", "La única forma de hacer un gran trabajo es amar lo que haces."
             ];
 
-            // --- Application State ---
+            // --- Estado de la Aplicación ---
             let isPlaying = false;
             let isVideoActive = false; 
             let startTimeout, stopTimeout;
-            let currentDailyEfemerideInterval; // For rotating ephemerides
-
-            // Configures the audio context for the visualizer
+            let dailyEfemerides = [];
+            let dailyEfemeridesIntervalId;
+            
             function setupAudioContext() {
-                if (audioCtx) {
-                    console.log("AudioContext already exists. Current state:", audioCtx.state);
-                    if (audioCtx.state === 'suspended') {
-                        audioCtx.resume().then(() => {
-                            console.log("AudioContext resumed from setupAudioContext.");
-                        }).catch(e => {
-                            console.error("Error resuming AudioContext in setupAudioContext:", e);
-                            showMessage("Error al reanudar el vúmetro: " + e.message, true, 5000);
-                        });
-                    }
-                    return;
-                }
+                if (audioCtx) return;
                 try {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                     analyser = audioCtx.createAnalyser();
@@ -462,61 +447,29 @@
                     analyser.connect(audioCtx.destination); 
                     bufferLength = analyser.frequencyBinCount; 
                     dataArray = new Uint8Array(bufferLength); 
-                    console.log("AudioContext initialized. State:", audioCtx.state);
                 } catch (e) {
                     console.error("Error configuring audio context:", e);
-                    showMessage("El navegador no soporta el vúmetro o hay un problema con el stream (CORS).", true, 5000);
+                    showMessage("El navegador no soporta el vúmetro.", true);
                 }
             }
 
-            // --- Audio Controls ---
             function playRadio() {
-                if (isPlaying) return; 
+                if (isPlaying) return;
+                if (!audioCtx) setupAudioContext();
 
-                console.log("Attempting to start playRadio()...");
-
-                if (audioCtx && audioCtx.state === 'suspended') {
-                    audioCtx.resume().then(() => {
-                        console.log("AudioContext resumed before play().");
-                        attemptToPlay();
-                    }).catch(e => {
-                        console.error("Error resuming AudioContext before play():", e);
-                        showMessage("Error al reanudar el audio: " + e.message, true, 5000);
-                    });
-                } else if (!audioCtx) {
-                    setupAudioContext();
-                    // Give a moment for context to be created before attempting to play
-                    setTimeout(attemptToPlay, 50); 
-                } else {
-                    attemptToPlay();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
                 }
-            }
 
-            function attemptToPlay() {
                 radioPlayer.play().then(() => {
-                    console.log("Radio playback started successfully.");
                     isPlaying = true;
                     playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>'; 
-
-                    if (!isVideoActive && audioCtx && audioCtx.state === 'running') {
-                        draw();
-                    } else if (audioCtx && audioCtx.state !== 'running') {
-                         console.warn("AudioContext is not in 'running' state after play(). VU meter will not start immediately.");
-                    }
+                    if (!isVideoActive) draw();
                 }).catch(e => {
                     console.error("Error playing audio:", e);
-                    let errorMessage = "No se pudo iniciar la radio. Asegúrate de interactuar con la página primero.";
-                    if (e.name === "NotAllowedError") {
-                        errorMessage += " (El navegador bloqueó la reproducción automática. Haz clic en el botón de Play.)";
-                    } else if (e.name === "AbortError") {
-                        errorMessage += " (La reproducción fue abortada, posiblemente por un cambio de fuente rápido.)";
-                    } else if (e.message.includes("Failed to load because no supported source was found")) {
-                        errorMessage += " (URL del stream no válida o problema de CORS.)";
-                    }
-                    showMessage(errorMessage, true, 6000);
+                    showMessage("No se pudo iniciar la radio. Interactúa con la página primero.", true);
                 });
             }
-
 
             function pauseRadio() {
                 if (!isPlaying) return; 
@@ -527,31 +480,21 @@
             }
 
             function togglePlayPause() {
-                if (isPlaying) {
-                    pauseRadio();
-                } else {
-                    playRadio();
-                }
+                if (isPlaying) pauseRadio();
+                else playRadio();
             }
             
             function toggleAudioSource() {
-                const wasPlaying = isPlaying; 
-                if (wasPlaying) {
-                    pauseRadio(); 
-                }
-
+                const wasPlaying = isPlaying;
+                if(wasPlaying) pauseRadio();
                 currentStreamIndex = (currentStreamIndex + 1) % streams.length; 
                 const newStream = streams[currentStreamIndex]; 
-
-                radioPlayer.src = newStream.url; 
-                radioPlayer.load(); 
+                radioPlayer.src = newStream.url;
+                radioPlayer.load();
                 updateStationLabel(); 
                 showMessage(`Cambiando a ${newStream.name}`, false, 2000);
-
                 if (wasPlaying) {
-                    radioPlayer.addEventListener('canplay', () => {
-                         playRadio(); 
-                    }, { once: true });
+                    radioPlayer.addEventListener('canplay', () => playRadio(), { once: true });
                 }
             }
             
@@ -561,15 +504,10 @@
             
             function toggleVideo() {
                 isVideoActive = !isVideoActive; 
-
                 let videoContainer = document.getElementById('videoContainer'); 
-
                 if (isVideoActive) {
-                    if (isPlaying) {
-                        pauseRadio(); 
-                    }
+                    if (isPlaying) pauseRadio(); 
                     cancelAnimationFrame(animationFrameId); 
-                    
                     canvas.classList.add('hidden');
                     
                     if (!videoContainer) {
@@ -579,32 +517,15 @@
                         playerDisplay.appendChild(videoContainer); 
                     }
                     
-                    const iframe = document.createElement('iframe');
-                    iframe.src = "https://player.kick.com/sintonia-tv"; 
-                    iframe.setAttribute('height', '720');
-                    iframe.setAttribute('width', '1280');
-                    iframe.setAttribute('frameborder', '0');
-                    iframe.setAttribute('scrolling', 'no');
-                    iframe.setAttribute('allowfullscreen', 'true');
-                    iframe.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture'); 
-
-                    videoContainer.innerHTML = ''; 
-                    videoContainer.appendChild(iframe); 
-
+                    videoContainer.innerHTML = `<iframe src="https://player.kick.com/sintonia-tv" height="100%" width="100%" frameborder="0" scrolling="no" allowfullscreen="true" allow="autoplay; encrypted-media; picture-in-picture"></iframe>`;
                     videoToggleLabel.textContent = "Escuchar Radio";
                     videoToggleBtn.innerHTML = '<i class="fa-solid fa-radio"></i>';
                 } else {
-                    if (videoContainer) {
-                        videoContainer.remove(); 
-                    }
-
+                    if (videoContainer) videoContainer.remove(); 
                     canvas.classList.remove('hidden');
-
                     videoToggleLabel.textContent = "Ver TV";
                     videoToggleBtn.innerHTML = '<i class="fa-solid fa-tv"></i>';
-                    
                     playRadio();
-                    showMessage("Cambiando a Radio...", false, 3000);
                 }
             }
 
@@ -613,62 +534,35 @@
                 showMessage(`Vúmetro Efecto ${currentVumeterEffect + 1}`, false, 1500); 
             }
 
-            // --- Likes Logic with Firestore ---
             function setupLikesListener() {
-                if (globalLikeDocRef && db) { 
-                    onSnapshot(globalLikeDocRef, (docSnap) => {
-                        if (docSnap.exists()) {
-                            const data = docSnap.data();
-                            const currentLikes = data.count || 0;
-                            likeCountSpan.textContent = `${currentLikes} Me Gusta`;
-                            console.log("Likes updated from Firestore:", currentLikes);
-                        } else {
-                            setDoc(globalLikeDocRef, { count: 0 }).then(() => {
-                                likeCountSpan.textContent = `0 Me Gusta`;
-                                console.log("Likes document initialized in Firestore.");
-                            }).catch(e => {
-                                console.error("Error initializing likes:", e);
-                            });
-                        }
-                    }, (error) => {
-                        console.error("Error listening to Firestore likes:", error);
-                        showMessage("Error de conexión con los likes. Los 'Me Gusta' podrían no actualizarse.", true, 5000);
-                    });
-                } else {
-                    console.warn("Firestore is not available for likes. Check Firebase initialization.");
-                    likeCountSpan.textContent = `0 Me Gusta (no persistente)`;
-                }
+                if (!globalLikeDocRef) return;
+                onSnapshot(globalLikeDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        likeCountSpan.textContent = `${docSnap.data().count || 0} Me Gusta`;
+                    } else {
+                        setDoc(globalLikeDocRef, { count: 0 });
+                    }
+                }, console.error);
             }
             
             async function handleLike() {
-                if (!globalLikeDocRef) {
-                    showMessage("La función de 'Me Gusta' no está disponible. Error de conexión con la base de datos.", true, 4000);
-                    return;
-                }
-                
+                if (!globalLikeDocRef) return showMessage("La función de 'Me Gusta' no está disponible.", true);
                 try {
-                    await updateDoc(globalLikeDocRef, {
-                        count: increment(1) 
-                    });
-                    console.log("Like incremented in Firestore.");
+                    await updateDoc(globalLikeDocRef, { count: increment(1) });
                     likeBtn.querySelector('i').classList.replace('far', 'fas'); 
                     likeBtn.querySelector('i').classList.add('text-red-500'); 
                 } catch (e) {
-                    console.error("Error registering like in Firestore:", e);
-                    showMessage("Error al registrar tu 'Me Gusta'. Intenta de nuevo.", true, 4000);
+                    console.error("Error registering like:", e);
+                    showMessage("Error al registrar tu 'Me Gusta'.", true);
                 }
             }
 
             function handleShare() {
                 if (navigator.share) { 
-                    navigator.share({
-                        title: 'SINTONIA Radio',
-                        text: '¡Escuchá la mejor radio online!',
-                        url: window.location.href 
-                    }).catch(console.error);
+                    navigator.share({ title: 'SINTONIA Radio', text: '¡Escuchá la mejor radio online!', url: window.location.href });
                 } else {
                     navigator.clipboard.writeText(window.location.href); 
-                    showMessage('¡Link copiado al portapapeles!', false, 2000);
+                    showMessage('¡Link copiado al portapapeles!', false);
                 }
             }
             
@@ -677,160 +571,112 @@
                 document.documentElement.classList.toggle('light'); 
             }
 
-            // --- Scheduler Logic ---
+            // --- Lógica de Programadores ---
             setStartBtn.addEventListener('click', () => {
-                const startTimeValue = startTimeInput.value;
-                if (!startTimeValue) {
-                    showMessage("Por favor, selecciona una fecha y hora.", true, 3000);
-                    return;
-                }
-                const targetTime = new Date(startTimeValue).getTime(); 
-                const now = new Date().getTime(); 
-                const delay = targetTime - now; 
-
-                if (delay <= 0) {
-                    showMessage("La hora seleccionada ya pasó.", true, 3000);
-                    return;
-                }
-
+                const targetTime = new Date(startTimeInput.value).getTime(); 
+                const delay = targetTime - Date.now(); 
+                if (delay <= 0) return showMessage("La hora seleccionada ya pasó.", true);
                 clearTimeout(startTimeout); 
-                startTimeout = setTimeout(() => {
-                    playRadio(); 
-                    showMessage("¡La radio ha comenzado según lo programado!", false, 5000);
-                }, delay);
-                
-                showMessage(`Radio programada para iniciar en ${new Date(targetTime).toLocaleString()}`, false, 4000);
+                startTimeout = setTimeout(() => playRadio(), delay);
+                showMessage(`Radio programada para iniciar en ${new Date(targetTime).toLocaleString()}`, false);
             });
 
             setStopBtn.addEventListener('click', () => {
                 const minutes = parseInt(stopTimeInput.value, 10); 
-                if (isNaN(minutes) || minutes <= 0) {
-                    showMessage("Ingresa un número válido de minutos.", true, 3000);
-                    return;
-                }
+                if (isNaN(minutes) || minutes <= 0) return showMessage("Ingresa un número válido de minutos.", true);
                 const delay = minutes * 60 * 1000; 
-
                 clearTimeout(stopTimeout); 
-                stopTimeout = setTimeout(() => {
-                    pauseRadio(); 
-                    showMessage("¡Temporizador de apagado completado!", false, 5000);
-                }, delay);
-
-                showMessage(`La radio se apagará en ${minutes} minuto(s).`, false, 4000);
+                stopTimeout = setTimeout(() => pauseRadio(), delay);
+                showMessage(`La radio se apagará en ${minutes} minuto(s).`, false);
             });
 
-
-            // --- Motivational Phrases Logic (formerly Ephemerides) ---
             function loadMotivationalPhrase() { 
-                const ONE_DAY_MS = 24 * 60 * 60 * 1000; 
+                const today = new Date().toDateString();
+                let lastDate = localStorage.getItem('lastPhraseDate');
+                let phraseIndex = parseInt(localStorage.getItem('phraseIndex') || '0');
 
-                let lastPhraseIndex = parseInt(localStorage.getItem('lastPhraseIndex') || '0');
-                let lastPhraseUpdate = parseInt(localStorage.getItem('lastPhraseUpdate') || '0');
-                const now = Date.now();
-
-                if (now - lastPhraseUpdate >= ONE_DAY_MS) {
-                    lastPhraseIndex = (lastPhraseIndex + 1) % motivationalPhrases.length;
-                    localStorage.setItem('lastPhraseIndex', lastPhraseIndex.toString());
-                    localStorage.setItem('lastPhraseUpdate', now.toString());
-                    console.log("New motivational phrase selected for the day.");
-                } else {
-                    console.log("Displaying the same motivational phrase for the day.");
+                if (today !== lastDate) {
+                    phraseIndex = (phraseIndex + 1) % motivationalPhrases.length;
+                    localStorage.setItem('phraseIndex', phraseIndex);
+                    localStorage.setItem('lastPhraseDate', today);
                 }
                 
-                const currentPhrase = motivationalPhrases[lastPhraseIndex];
-                motivationalPhraseContentDiv.classList.remove('efemeride-fade'); 
-                void motivationalPhraseContentDiv.offsetWidth; 
-                motivationalPhraseContentDiv.classList.add('efemeride-fade'); 
-                motivationalPhraseContentDiv.textContent = currentPhrase; 
+                motivationalPhraseContentDiv.textContent = motivationalPhrases[phraseIndex]; 
             }
 
-            // --- Logic to display Daily Ephemerides from Firestore ---
-            let currentDailyEfemerideIndex = 0;
-            let dailyEfemerides = [];
-            let dailyEfemeridesIntervalId;
-
-            async function loadDailyEfemérides() {
-                if (!db) {
-                    dailyEfeméridesDisplay.innerHTML = '<p class="text-center text-gray-500 text-sm">Base de datos no disponible para efemérides.</p>';
-                    return;
-                }
-
+            // --- Lógica para mostrar Efemérides Diarias desde DATOS LOCALES ---
+            function loadDailyEfemérides() {
                 const today = new Date();
-                const day = String(today.getDate()).padStart(2, '0');
-                const month = String(today.getMonth() + 1).padStart(2, '0');
-                const docKey = `${month}-${day}`;
+                const day = today.getDate();
+                const monthIndex = today.getMonth();
+                
+                // Para crear la clave para acceder a los datos (MM-DD)
+                const monthForData = String(monthIndex + 1).padStart(2, '0');
+                const dayForData = String(day).padStart(2, '0');
+                const docKey = `${monthForData}-${dayForData}`;
 
-                // Path: artifacts/{appId}/public/data/dailyEfemérides/{MM-DD}
-                const docRef = doc(db, `artifacts/${appIdForFirestore}/public/data/dailyEfemérides/${docKey}`);
+                // Para mostrar la fecha formateada
+                const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+                const monthName = monthNames[monthIndex];
+                const formattedDate = `${day} de ${monthName}`;
 
-                try {
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        dailyEfemerides = docSnap.data().events || [];
-                        if (dailyEfemerides.length > 0) {
-                            startDailyEfemeridesRotation();
-                        } else {
-                            dailyEfeméridesDisplay.innerHTML = '<p class="text-center text-gray-500 text-sm">No hay efemérides para hoy.</p>';
-                        }
-                    } else {
-                        dailyEfeméridesDisplay.innerHTML = '<p class="text-center text-gray-500 text-sm">No se encontraron efemérides para hoy.</p>';
-                        console.log(`No ephemerides document found for ${docKey}.`);
-                    }
-                } catch (e) {
-                    console.error("Error loading daily ephemerides from Firestore:", e);
-                    dailyEfeméridesDisplay.innerHTML = '<p class="text-center text-red-500 text-sm">Error al cargar efemérides diarias.</p>';
-                    showMessage("Error al cargar efemérides diarias. Revisa la consola para más detalles.", true, 5000);
+                dailyEfemerides = localEphemeridesData[docKey] || [];
+
+                if (dailyEfemerides.length > 0) {
+                    startDailyEfemeridesRotation(formattedDate);
+                } else {
+                    dailyEfeméridesDisplay.innerHTML = '<p class="text-center text-gray-500 text-sm">No hay efemérides para hoy.</p>';
                 }
             }
 
-            function startDailyEfemeridesRotation() {
-                if (dailyEfemeridesIntervalId) {
-                    clearInterval(dailyEfemeridesIntervalId);
-                }
+            function startDailyEfemeridesRotation(formattedDate) {
+                if (dailyEfemeridesIntervalId) clearInterval(dailyEfemeridesIntervalId);
+                if (dailyEfemerides.length === 0) return;
 
-                if (dailyEfemerides.length === 0) {
-                    dailyEfeméridesDisplay.innerHTML = '<p class="text-center text-gray-500 text-sm">No hay efemérides disponibles para rotar.</p>';
-                    return;
-                }
+                // Paleta de colores para las efemérides
+                const efemeridesColors = [
+                    'linear-gradient(45deg, #2980b9, #3498db)',
+                    'linear-gradient(45deg, #c0392b, #e74c3c)',
+                    'linear-gradient(45deg, #27ae60, #2ecc71)',
+                    'linear-gradient(45deg, #8e44ad, #9b59b6)',
+                    'linear-gradient(45deg, #d35400, #e67e22)',
+                    'linear-gradient(45deg, #16a085, #1abc9c)',
+                    'linear-gradient(45deg, #f39c12, #f1c40f)',
+                    'linear-gradient(45deg, #2c3e50, #34495e)'
+                ];
+                
+                let currentIndex = 0;
+                const updateDisplay = () => {
+                    const currentColor = efemeridesColors[currentIndex % efemeridesColors.length];
+                    
+                    dailyEfeméridesDisplay.innerHTML = `
+                        <div class="efemeride-fade w-full" style="background: ${currentColor}; padding: 0.75rem; border-radius: 0.5rem; text-align: center; color: white;">
+                            <p class="font-bold text-md">${formattedDate}</p>
+                            <p class="font-semibold text-sm mt-1">${dailyEfemerides[currentIndex]}</p>
+                        </div>`;
+                    currentIndex = (currentIndex + 1) % dailyEfemerides.length;
+                };
 
-                currentDailyEfemerideIndex = 0; // Reset index when starting rotation
-
-                function updateDailyEfemerideDisplay() {
-                    const efemeride = dailyEfemerides[currentDailyEfemerideIndex];
-                    if (efemeride) {
-                        dailyEfeméridesDisplay.innerHTML = `
-                            <div style="background-color: ${efemeride.bgColor || '#6B7280'}; padding: 0.75rem; border-radius: 0.5rem; text-align: center; color: white; font-weight: 600;">
-                                ${efemeride.text}
-                            </div>
-                        `;
-                    } else {
-                         dailyEfeméridesDisplay.innerHTML = '<p class="text-center text-gray-500 text-sm">Efeméride no encontrada.</p>';
-                    }
-                    currentDailyEfemerideIndex = (currentDailyEfemerideIndex + 1) % dailyEfemerides.length;
-                }
-
-                updateDailyEfemerideDisplay(); // Show the first one immediately
-                dailyEfeméridesIntervalId = setInterval(updateDailyEfemerideDisplay, 8000); // Change every 8 seconds
+                updateDisplay(); 
+                dailyEfemeridesIntervalId = setInterval(updateDisplay, 8000); // 8 segundos
             }
-
-
-            // --- VU Meter Drawing Functions --- 
+            
+            // --- Funciones de Dibujo del Vúmetro ---
             function draw() {
-                if (!isPlaying || isVideoActive || !audioCtx || audioCtx.state !== 'running' || !analyser || !dataArray) {
-                    cancelAnimationFrame(animationFrameId);
-                    return;
-                }
+                if (!isPlaying || isVideoActive || !analyser) return;
                 animationFrameId = requestAnimationFrame(draw); 
                 analyser.getByteFrequencyData(dataArray); 
                 canvasCtx.fillStyle = '#000'; 
                 canvasCtx.fillRect(0, 0, canvas.width, canvas.height); 
 
                 switch (currentVumeterEffect) {
-                    case 0: drawBars(); break; case 1: drawCircular(); break; case 2: drawWave(); break; case 3: drawSunburst(); break; case 4: drawGalaxy(); break; case 5: drawTunnel(); break; case 6: drawReflectedBars(); break; case 7: drawParticleWeb(); break; case 8: drawColorBlocks(); break; case 9: drawTexturedLines(); break;
+                    case 0: drawBars(); break;
+                    case 1: drawCircular(); break;
+                    case 2: drawWave(); break;
+                    default: drawBars();
                 }
             }
             
-            // Draws vertical audio bars
             const drawBars = () => {
                 const barWidth = (canvas.width / bufferLength) * 2.5; 
                 let x = 0;
@@ -843,7 +689,6 @@
                 }
             };
 
-            // Draws circular bars from the center
             const drawCircular = () => {
                 const centerX = canvas.width / 2;
                 const centerY = canvas.height / 2;
@@ -855,8 +700,7 @@
                     const yStart = centerY + radius * Math.sin(angle);
                     const xEnd = centerX + (radius + barHeight) * Math.cos(angle);
                     const yEnd = centerY + (radius + barHeight) * Math.sin(angle);
-                    const hue = i * 3; 
-                    canvasCtx.strokeStyle = `hsl(${hue}, 100%, 70%)`;
+                    canvasCtx.strokeStyle = `hsl(${i * 3}, 100%, 70%)`;
                     canvasCtx.lineWidth = 2;
                     canvasCtx.beginPath();
                     canvasCtx.moveTo(xStart, yStart);
@@ -865,181 +709,44 @@
                 }
             };
             
-            // Draws a time wave
             const drawWave = () => {
                 analyser.getByteTimeDomainData(dataArray); 
                 canvasCtx.lineWidth = 2;
-                const hue = Date.now() / 20 % 360; 
-                canvasCtx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+                canvasCtx.strokeStyle = `hsl(${Date.now() / 20 % 360}, 100%, 50%)`;
                 canvasCtx.beginPath();
                 const sliceWidth = canvas.width * 1.0 / bufferLength;
                 let x = 0;
                 for (let i = 0; i < bufferLength; i++) {
                     const v = dataArray[i] / 128.0; 
                     const y = v * canvas.height / 2; 
-                    if (i === 0) {
-                        canvasCtx.moveTo(x, y);
-                    } else {
-                        canvasCtx.lineTo(x, y);
-                    }
+                    if (i === 0) canvasCtx.moveTo(x, y);
+                    else canvasCtx.lineTo(x, y);
                     x += sliceWidth;
                 }
                 canvasCtx.lineTo(canvas.width, canvas.height / 2);
                 canvasCtx.stroke();
             };
 
-            // Draws a sunburst effect
-            const drawSunburst = () => {
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                for (let i = 0; i < bufferLength; i+=4) { 
-                    const barHeight = dataArray[i] * 1.5; 
-                    const angle = (i / bufferLength) * Math.PI * 2; 
-                    const hue = angle * 60; 
-                    canvasCtx.save(); 
-                    canvasCtx.translate(centerX, centerY); 
-                    canvasCtx.rotate(angle); 
-                    const gradient = canvasCtx.createLinearGradient(0, 0, barHeight, 0); 
-                    gradient.addColorStop(0, `hsl(${hue}, 100%, 20%)`);
-                    gradient.addColorStop(1, `hsl(${hue}, 100%, 70%)`);
-                    canvasCtx.strokeStyle = gradient;
-                    canvasCtx.lineWidth = 3;
-                    canvasCtx.beginPath();
-                    canvasCtx.moveTo(0, 0);
-                    canvasCtx.lineTo(barHeight, 0);
-                    canvasCtx.stroke();
-                    canvasCtx.restore(); 
-                }
-            };
-            
-            // Draws a galaxy effect with particles
-            const drawGalaxy = () => {
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                for (let i = 0; i < bufferLength; i++) {
-                    const value = dataArray[i];
-                    if (value > 100) { 
-                        const radius = (value / 255) * Math.min(centerX, centerY) * 1.2; 
-                        const angle = (i / bufferLength) * 2 * Math.PI + (Date.now() / 10000); 
-                        const x = centerX + radius * Math.cos(angle);
-                        const y = centerY + radius * Math.sin(angle);
-                        const hue = i * 2.5; 
-                        canvasCtx.fillStyle = `hsla(${hue}, 100%, 80%, ${value/255})`; 
-                        canvasCtx.beginPath();
-                        canvasCtx.arc(x, y, value/100, 0, Math.PI * 2); 
-                        canvasCtx.fill();
-                    }
-                }
-            };
-
-            // Draws a concentric tunnel effect
-            const drawTunnel = () => {
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                for (let i = 0; i < bufferLength; i+=8) { 
-                    const value = dataArray[i];
-                    const radius = (i / bufferLength) * (centerX * 0.8) + (value / 5); 
-                    if (radius > centerX) return; 
-                    const hue = value; 
-                    canvasCtx.strokeStyle = `hsla(${hue}, 100%, 60%, 0.5)`; 
-                    canvasCtx.lineWidth = 2;
-                    canvasCtx.beginPath();
-                    canvasCtx.arc(centerX, centerY, radius, 0, Math.PI * 2); 
-                    canvasCtx.stroke();
-                }
-            };
-
-            // Draws bars with vertical reflection
-            const drawReflectedBars = () => {
-                const barWidth = canvas.width / bufferLength;
-                const centerY = canvas.height / 2;
-                for (let i = 0; i < bufferLength; i++) {
-                    const barHeight = dataArray[i] / 2; 
-                    const hue = i * 2; 
-                    const gradient = canvasCtx.createLinearGradient(0, centerY - barHeight, 0, centerY + barHeight); 
-                    gradient.addColorStop(0, `hsl(${hue}, 100%, 50%)`);
-                    gradient.addColorStop(0.5, `hsl(${hue}, 80%, 30%)`);
-                    gradient.addColorStop(1, `hsl(${hue}, 100%, 50%)`);
-                    canvasCtx.fillStyle = gradient;
-                    canvasCtx.fillRect(i * barWidth, centerY - barHeight, barWidth, barHeight * 2); 
-                }
-            };
-            
-            // Draws a connected particle web
-            const drawParticleWeb = () => {
-                let particles = [];
-                for(let i = 0; i < bufferLength; i+=8) { 
-                    const value = dataArray[i];
-                    if (value > 50) { 
-                        const angle = (i / bufferLength) * Math.PI * 2;
-                        const distance = value * 1.5;
-                        particles.push({ 
-                            x: canvas.width/2 + Math.cos(angle) * distance,
-                            y: canvas.height/2 + Math.sin(angle) * distance,
-                            hue: i*2
-                        });
-                    }
-                }
-                for(let i=0; i<particles.length; i++) {
-                    for(let j=i; j<particles.length; j++) {
-                        const dx = particles[i].x - particles[j].x;
-                        const dy = particles[i].y - particles[j].y;
-                        const dist = Math.sqrt(dx*dx + dy*dy); 
-                        if(dist < 50) { 
-                            canvasCtx.strokeStyle = `hsla(${particles[i].hue}, 100%, 70%, ${1 - dist/50})`; 
-                            canvasCtx.beginPath();
-                            canvasCtx.moveTo(particles[i].x, particles[i].y);
-                            canvasCtx.lineTo(particles[j].x, particles[j].y);
-                            canvasCtx.stroke();
-                        }
-                    }
-                }
-            };
-
-            // Draws a color block pattern
-            const drawColorBlocks = () => {
-                const blockSize = canvas.width / 16; 
-                for (let i = 0; i < 16; i++) {
-                    for (let j = 0; j < 9; j++) {
-                        const dataIndex = Math.floor((i*16 + j) / (16*9) * bufferLength); 
-                        const value = dataArray[dataIndex];
-                        const hue = value * 1.5; 
-                        canvasCtx.fillStyle = `hsl(${hue}, 100%, 50%)`;
-                        canvasCtx.fillRect(i * blockSize, j * blockSize, blockSize-1, blockSize-1); 
-                    }
-                }
-            };
-            
-            // Draws textured lines rising from the bottom
-            const drawTexturedLines = () => {
-                for (let i = 0; i < bufferLength; i += 4) { 
-                    const value = dataArray[i];
-                    const y = canvas.height - value; 
-                    const hue = 180 + (value / 255) * 180; 
-                    const gradient = canvasCtx.createLinearGradient(i * 3, y, i * 3, canvas.height); 
-                    gradient.addColorStop(0, `hsla(${hue}, 100%, 70%, ${value / 255})`);
-                    gradient.addColorStop(1, `hsla(${hue}, 100%, 50%, 0)`);
-                    canvasCtx.fillStyle = gradient;
-                    canvasCtx.fillRect(i * 3, y, 2, canvas.height - y); 
-                }
-            };
-            
-            // --- Initialization ---
             function init() {
+                playPauseBtn.addEventListener('click', togglePlayPause);
+                volumeSlider.addEventListener('input', (e) => radioPlayer.volume = e.target.value);
+                changeSourceBtn.addEventListener('click', toggleAudioSource);
+                vumeterToggleBtn.addEventListener('click', changeVumeterEffect);
+                videoToggleBtn.addEventListener('click', toggleVideo);
+                likeBtn.addEventListener('click', handleLike);
+                shareBtn.addEventListener('click', handleShare);
+                themeToggle.addEventListener('change', handleThemeToggle);
+
                 radioPlayer.src = streams[currentStreamIndex].url; 
                 updateStationLabel(); 
                 
-                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                if (window.matchMedia('(prefers-color-scheme: light)').matches) {
                     themeToggle.checked = false; 
-                    document.documentElement.classList.remove('dark');
-                    document.documentElement.classList.add('light');
+                    document.documentElement.classList.replace('dark', 'light');
                 } else {
-                    themeToggle.checked = true; 
-                    document.documentElement.classList.add('dark');
-                    document.documentElement.classList.remove('light');
+                    themeToggle.checked = true;
                 }
-                loadMotivationalPhrase(); // Load the motivational phrase
-                // loadDailyEfemérides() is called after Firebase authentication
+                loadMotivationalPhrase();
 
                 canvas.width = playerDisplay.clientWidth;
                 canvas.height = playerDisplay.clientHeight;
@@ -1048,28 +755,9 @@
                     canvas.height = playerDisplay.clientHeight;
                 });
 
-                // Add event listener for audio errors
                 radioPlayer.addEventListener('error', (e) => {
-                    console.error("Error en el reproductor de audio:", e);
-                    let errorMessage = "Error en la reproducción de audio.";
-                    switch (e.target.error.code) {
-                        case e.target.error.MEDIA_ERR_ABORTED:
-                            errorMessage += " La carga de audio fue abortada.";
-                            break;
-                        case e.target.error.MEDIA_ERR_NETWORK:
-                            errorMessage += " Error de red al descargar el audio.";
-                            break;
-                        case e.target.error.MEDIA_ERR_DECODE:
-                            errorMessage += " Error al decodificar el audio.";
-                            break;
-                        case e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                            errorMessage += " La fuente de audio no es compatible o no se pudo encontrar.";
-                            break;
-                        default:
-                            errorMessage += " Error desconocido.";
-                            break;
-                    }
-                    showMessage(errorMessage, true, 8000);
+                    console.error("Error en el reproductor:", e.target.error);
+                    showMessage(`Error de audio: ${e.target.error.message}`, true, 8000);
                 });
             }
 
